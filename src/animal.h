@@ -41,8 +41,8 @@ enum opcode {
 /* General */
 	OP_MOVE,	/* dest src */
 	OP_XCHG,	/* dest1 dest2 */
-	OP_FLAG,	/* dest */
-	OP_LFLG,	/* src */
+	OP_GFLG,	/* dest */
+	OP_SFLG,	/* src */
 /* Bitwise */
 	OP_AND,		/* dest src */
 	OP_OR,		/* dest src */

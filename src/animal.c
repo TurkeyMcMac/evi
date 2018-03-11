@@ -154,14 +154,14 @@ int animal_step(struct animal *self)
 		*destl = *destr;
 		*destr = temp;
 	} break;
-	case OP_FLAG: {
+	case OP_GFLG: {
 		uint16_t *dest = write_dest(self, l_fmt, get_arg(self, 1));
 		if (dest)
 			*dest = self->flags;
 		else
 			goto error;
 	} break;
-	case OP_LFLG: {
+	case OP_SFLG: {
 		if (read_from(self, r_fmt, get_arg(self, 1), &self->flags))
 			goto error;
 	} break;
