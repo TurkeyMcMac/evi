@@ -1,9 +1,10 @@
 #include "animal.h"
 
-#define OPCODE_MASK ((1 << 12) - 1)
+#define OPCODE_MASK ((1 << 10) - 1)
 
-#define left_arg_format(op) ((op) >> 14)
-#define right_arg_format(op) (((op) >> 12) & 3)
+#define left_arg_format(op) (((op) >> 12) & 3)
+#define right_arg_format(op) (((op) >> 10) & 3)
+#define operation_size(op) ((op) >> 14)
 
 #include <stdio.h>
 
@@ -73,50 +74,10 @@ static uint16_t *write_dest(struct animal *a, uint16_t fmt, uint16_t value)
 
 #define get_arg(self, offset) ((self)->brain->code[(self)->instr_ptr + (offset)])
 
-static const uint16_t arg_nums[] = {
-/* General */
-	[OP_MOVE] = 2,
-	[OP_XCHG] = 2,
-	[OP_FLAG] = 1,
-	[OP_LFLG] = 1,
-/* Bitwise */
-	[OP_AND ] = 2,
-	[OP_OR  ] = 2,
-	[OP_XOR ] = 2,
-	[OP_NOT ] = 1,
-	[OP_SHFR] = 2,
-	[OP_SHFL] = 2,
-/* Arithmetic */
-	[OP_ADD ] = 2,
-	[OP_SUB ] = 2,
-	[OP_MUL ] = 2,
-	[OP_SMUL] = 2,
-	[OP_DIV ] = 2,
-	[OP_SDIV] = 2,
-	[OP_MOD ] = 2,
-	[OP_SMOD] = 2,
-/* Control flow */
-	[OP_JUMP] = 1,
-	[OP_CMPR] = 2,
-	[OP_JPTA] = 2,
-	[OP_JTNA] = 2,
-	[OP_JPTO] = 2,
-	[OP_JTNO] = 2,
-/* Special */
-	[OP_FACE] = 1,
-	[OP_PICK] = 2,
-	[OP_DROP] = 2,
-	[OP_CONV] = 2,
-	[OP_EAT ] = 1,
-	[OP_CHEM] = 2,
-	[OP_BABY] = 0,
-};
-
-static int jump(struct animal *a, uint16_t dest, uint16_t arg_num)
+static int jump(struct animal *a, uint16_t dest)
 {
 	if (dest >= a->brain->code_size) {
 		set_error(a, FCOOB);
-		a->instr_ptr += 1 + arg_num;
 		return -1;
 	} else {
 		a->instr_ptr = dest;
@@ -142,7 +103,7 @@ static int jump(struct animal *a, uint16_t dest, uint16_t arg_num)
 		 || read_from(self, r_fmt, get_arg(self, 2), &test)) \
 			goto error; \
 		if (condition) { \
-			if (jump(self, dest, arg_nums[opcode])) \
+			if (jump(self, dest)) \
 				goto error; \
 			else \
 				return 0; \
@@ -151,18 +112,19 @@ static int jump(struct animal *a, uint16_t dest, uint16_t arg_num)
 
 int animal_step(struct animal *self)
 {
+	if (self->instr_ptr >= self->brain->code_size)
+		return -1;
 	uint16_t op = self->brain->code[self->instr_ptr];
-	uint16_t l_fmt = left_arg_format(op),
+	uint16_t op_size = operation_size(op),
+		 l_fmt = left_arg_format(op),
 		 r_fmt = right_arg_format(op);
 	uint16_t opcode = op & OPCODE_MASK;
 	if (opcode >= N_OPCODES) {
 		set_error(self, FINVAL_OPCODE);
 		++self->instr_ptr;
-		return -1;
+		return 0;
 	}
-	if (self->instr_ptr + arg_nums[opcode] >= self->brain->code_size) {
-		set_error(self, FINVAL_OPCODE);
-		++self->instr_ptr;
+	if (self->instr_ptr + op_size > self->brain->code_size) {
 		return -1;
 	}
 	switch (opcode) {
@@ -216,7 +178,7 @@ int animal_step(struct animal *self)
 	case OP_JUMP: {
 		uint16_t dest;
 		if (read_from(self, l_fmt, get_arg(self, 1), &dest)
-		 || jump(self, dest, arg_nums[opcode]))
+		 || jump(self, dest))
 			goto error;
 	} return 0;
 	case OP_CMPR: {
@@ -242,15 +204,18 @@ int animal_step(struct animal *self)
 /* Special */
 	default: {
 		set_error(self, FINVAL_OPCODE);
-	} break;
+	} goto error;
 	}
 	self->flags &= ~(FINVAL_ARG | FROOB | FCOOB | FINVAL_OPCODE);
 error:
-	self->instr_ptr += 1 + arg_nums[opcode];
+	self->instr_ptr += op_size;
 	return 0;
 }
 
-#define INSTR(i, lf, rf) (OP_##i | ((lf) << 14) | ((rf) << 12))
+/*                                    left format    right format  op size */
+#define INSTR2(i, lf, rf) (OP_##i | ((lf) << 12) | ((rf) << 10) | (3 << 14))
+#define INSTR1(i, lf, rf) (OP_##i | ((lf) << 12) | ((rf) << 10) | (2 << 14))
+#define INSTR0(i, lf, rf) (OP_##i | ((lf) << 12) | ((rf) << 10) | (1 << 14))
 
 #define I ARG_FMT_IMMEDIATE
 #define F ARG_FMT_FOLLOW_ONCE
@@ -260,9 +225,9 @@ static struct brain test_brain = {
 	.ram_size = 6,
 	.code_size = 9,
 	.code = {
-		INSTR(SUB, F,I),	0x0000, 1,
-		INSTR(CMPR, F,I),	0x0000, 0,
-		INSTR(JPTO, I,I),	0x0000, FGREATER,
+		[0x0000] = INSTR2(SUB,  F,I),	0x0000, 1,
+		[0x0003] = INSTR2(CMPR, F,I),	0x0000, 0,
+		[0x0006] = INSTR2(JPTO, I,I),	0x0000, FGREATER,
 	},
 };
 
@@ -275,11 +240,7 @@ static struct animal test_animal = {
 
 void test_asm(void)
 {
-	int i = 0;
-	while (test_animal.instr_ptr < test_brain.code_size) {
+	do {
 		printf("countdown: %u\n", test_animal.ram[0]);
-		animal_step(&test_animal);
-		++i;
-	}
-	printf("%d\n", i);
+	} while (!animal_step(&test_animal));
 }
