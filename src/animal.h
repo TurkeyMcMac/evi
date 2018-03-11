@@ -41,7 +41,7 @@ enum opcode {
 	OP_MOVE,	/* dest src */
 	OP_XCHG,	/* dest1 dest2 */
 	OP_FLAG,	/* dest */
-	OP_CFLG,	/* */
+	OP_LFLG,	/* src */
 /* Bitwise */
 	OP_AND,		/* dest src */
 	OP_OR,		/* dest src */
@@ -61,7 +61,6 @@ enum opcode {
 /* Control flow */
 	OP_JUMP,	/* dest */
 	OP_CMPR,	/* cmp1 cmp2 */
-	OP_BITS,	/* test1 test2 */
 	OP_JPTA,	/* dest test */
 	OP_JTNA,	/* dest test */
 	OP_JPTO,	/* dest test */

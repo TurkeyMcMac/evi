@@ -78,7 +78,7 @@ static const uint16_t arg_nums[] = {
 	[OP_MOVE] = 2,
 	[OP_XCHG] = 2,
 	[OP_FLAG] = 1,
-	[OP_CFLG] = 0,
+	[OP_LFLG] = 1,
 /* Bitwise */
 	[OP_AND ] = 2,
 	[OP_OR  ] = 2,
@@ -98,7 +98,6 @@ static const uint16_t arg_nums[] = {
 /* Control flow */
 	[OP_JUMP] = 1,
 	[OP_CMPR] = 2,
-	[OP_BITS] = 2,
 	[OP_JPTA] = 2,
 	[OP_JTNA] = 2,
 	[OP_JPTO] = 2,
@@ -189,8 +188,9 @@ int animal_step(struct animal *self)
 		else
 			goto error;
 	} break;
-	case OP_CFLG: {
-		self->flags = 0;
+	case OP_LFLG: {
+		if (read_from(self, r_fmt, get_arg(self, 1), &self->flags))
+			goto error;
 	} break;
 /* Bitwise */
 	OP_CASE_UNSIGNED(AND, &);
@@ -234,16 +234,6 @@ int animal_step(struct animal *self)
 			self->flags |= FEQUAL;
 			self->flags &= ~(FLESSER | FGREATER);
 		}
-	} break;
-	case OP_BITS: {
-		uint16_t left, right;
-		if (read_from(self, l_fmt, get_arg(self, 1), &left)
-		 || read_from(self, r_fmt, get_arg(self, 2), &right))
-			goto error;
-		if (left == (left & right))
-			self->flags |= FEQUAL;
-		else
-			self->flags &= ~FEQUAL;
 	} break;
 	OP_CASE_JUMP_COND(JPTA, self->flags & test == test);
 	OP_CASE_JUMP_COND(JTNA, self->flags & test == 0);
