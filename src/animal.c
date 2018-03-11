@@ -6,8 +6,6 @@
 #define right_arg_format(op) (((op) >> 10) & 3)
 #define operation_size(op) ((op) >> 14)
 
-#include <stdio.h>
-
 enum {
 	ARG_FMT_IMMEDIATE = 0,
 	ARG_FMT_FOLLOW_ONCE = 1,
@@ -237,6 +235,8 @@ static struct animal test_animal = {
 	.flags = 0,
 	.ram = {6000,0,0,0,0}
 };
+
+#include <stdio.h>
 
 void test_asm(void)
 {
