@@ -20,6 +20,7 @@ enum flags {
 	FROOB = 1 << 4,
 	FCOOB = 1 << 5,
 	FINVAL_OPCODE = 1 << 6,
+	FDIVZERO = 1 << 7,
 };
 
 struct animal {

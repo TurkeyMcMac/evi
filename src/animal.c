@@ -12,7 +12,7 @@ enum {
 	ARG_FMT_FOLLOW_TWICE = 2,
 };
 
-void set_error(struct animal *a, uint16_t errs)
+void set_instr_error(struct animal *a, uint16_t errs)
 {
 	a->flags |= errs;
 	a->flags &= errs ^ ~(FINVAL_ARG | FROOB | FCOOB | FINVAL_OPCODE);
@@ -28,7 +28,7 @@ static int read_from(struct animal *a, uint16_t fmt, uint16_t value, uint16_t *d
 		if (value < a->brain->ram_size)
 			*dest = a->ram[value];
 		else {
-			set_error(a, FROOB);
+			set_instr_error(a, FROOB);
 			return -1;
 		}
 		break;
@@ -36,12 +36,12 @@ static int read_from(struct animal *a, uint16_t fmt, uint16_t value, uint16_t *d
 		if (value < a->brain->ram_size && a->ram[value] < a->brain->ram_size)
 			*dest = a->ram[a->ram[value]];
 		else {
-			set_error(a, FROOB);
+			set_instr_error(a, FROOB);
 			return -1;
 		}
 		break;
 	default:
-		set_error(a, FINVAL_ARG);
+		set_instr_error(a, FINVAL_ARG);
 		return -1;
 	}
 	return 0;
@@ -54,18 +54,18 @@ static uint16_t *write_dest(struct animal *a, uint16_t fmt, uint16_t value)
 		if (value < a->brain->ram_size) {
 			return &a->ram[value];
 		} else {
-			set_error(a, FROOB);
+			set_instr_error(a, FROOB);
 			return NULL;
 		}
 	case ARG_FMT_FOLLOW_TWICE:
 		if (value < a->brain->ram_size && a->ram[value] < a->brain->ram_size) {
 			return &a->ram[a->ram[value]];
 		} else {
-			set_error(a, FROOB);
+			set_instr_error(a, FROOB);
 			return NULL;
 		}
 	default:
-		set_error(a, FINVAL_ARG);
+		set_instr_error(a, FINVAL_ARG);
 		return NULL;
 	}
 }
@@ -75,7 +75,7 @@ static uint16_t *write_dest(struct animal *a, uint16_t fmt, uint16_t value)
 static int jump(struct animal *a, uint16_t dest)
 {
 	if (dest >= a->brain->code_size) {
-		set_error(a, FCOOB);
+		set_instr_error(a, FCOOB);
 		return -1;
 	} else {
 		a->instr_ptr = dest;
@@ -83,7 +83,7 @@ static int jump(struct animal *a, uint16_t dest)
 	}
 }
 
-#define _OP_CASE(name, type, action) \
+#define OP_CASE_NUMERIC(name, type, action) \
 	case OP_##name: { \
 		type temp, *dest = (type *)write_dest(self, l_fmt, get_arg(self, 1)); \
 		if (!dest || read_from(self, r_fmt, get_arg(self, 2), (type *)&temp)) \
@@ -91,8 +91,21 @@ static int jump(struct animal *a, uint16_t dest)
 		*dest action##= temp; \
 	} break
 
-#define OP_CASE_UNSIGNED(name, action) _OP_CASE(name, uint16_t, action)
-#define OP_CASE_SIGNED(name, action) _OP_CASE(S##name, int16_t, action)
+#define OP_CASE_UNSIGNED(name, action) OP_CASE_NUMERIC(name, uint16_t, action)
+
+#define OP_CASE_CHECK_ZERO(name, type, action) \
+	case OP_##name: { \
+		type temp, *dest = (type *)write_dest(self, l_fmt, get_arg(self, 1)); \
+		if (!dest || read_from(self, r_fmt, get_arg(self, 2), (type *)&temp)) \
+			break; \
+		if (temp != 0) { \
+			*dest action##= temp; \
+			self->flags &= ~FDIVZERO; \
+		} else { \
+			self->flags |= FDIVZERO; \
+			goto error; \
+		} \
+	} break
 
 #define OP_CASE_JUMP_COND(name, condition) \
 	case OP_##name: { \
@@ -118,7 +131,7 @@ int animal_step(struct animal *self)
 		 r_fmt = right_arg_format(op);
 	uint16_t opcode = op & OPCODE_MASK;
 	if (opcode >= N_OPCODES) {
-		set_error(self, FINVAL_OPCODE);
+		set_instr_error(self, FINVAL_OPCODE);
 		++self->instr_ptr;
 		return 0;
 	}
@@ -167,11 +180,11 @@ int animal_step(struct animal *self)
 	OP_CASE_UNSIGNED(ADD, +);
 	OP_CASE_UNSIGNED(SUB, -);
 	OP_CASE_UNSIGNED(MUL, *);
-	OP_CASE_SIGNED(MUL, *);
-	OP_CASE_UNSIGNED(DIV, /);
-	OP_CASE_SIGNED(DIV, /);
-	OP_CASE_UNSIGNED(MOD, %);
-	OP_CASE_SIGNED(MOD, %);
+	OP_CASE_NUMERIC(SMUL, int16_t, *);
+	OP_CASE_CHECK_ZERO(DIV, uint16_t, /);
+	OP_CASE_CHECK_ZERO(SDIV, int16_t, /);
+	OP_CASE_CHECK_ZERO(MOD, uint16_t, %);
+	OP_CASE_CHECK_ZERO(SMOD, int16_t, %);
 /* Control flow */
 	case OP_JUMP: {
 		uint16_t dest;
@@ -195,13 +208,13 @@ int animal_step(struct animal *self)
 			self->flags &= ~(FLESSER | FGREATER);
 		}
 	} break;
-	OP_CASE_JUMP_COND(JPTA, self->flags & test == test);
-	OP_CASE_JUMP_COND(JTNA, self->flags & test == 0);
+	OP_CASE_JUMP_COND(JPTA, (self->flags | test) == self->flags);
+	OP_CASE_JUMP_COND(JTNA, ((self->flags | test) ^ test) == self->flags);
 	OP_CASE_JUMP_COND(JPTO, (self->flags & test) != 0);
-	OP_CASE_JUMP_COND(JTNO, self->flags & test != test);
+	OP_CASE_JUMP_COND(JTNO, (self->flags & test) != test);
 /* Special */
 	default: {
-		set_error(self, FINVAL_OPCODE);
+		set_instr_error(self, FINVAL_OPCODE);
 	} goto error;
 	}
 	self->flags &= ~(FINVAL_ARG | FROOB | FCOOB | FINVAL_OPCODE);
@@ -210,7 +223,7 @@ error:
 	return 0;
 }
 
-/*                                    left format    right format  op size */
+/*                                   left format    right format   op size */
 #define INSTR2(i, lf, rf) (OP_##i | ((lf) << 12) | ((rf) << 10) | (3 << 14))
 #define INSTR1(i, lf, rf) (OP_##i | ((lf) << 12) | ((rf) << 10) | (2 << 14))
 #define INSTR0(i, lf, rf) (OP_##i | ((lf) << 12) | ((rf) << 10) | (1 << 14))
@@ -221,11 +234,10 @@ error:
 
 static struct brain test_brain = {
 	.ram_size = 6,
-	.code_size = 9,
+	.code_size = 6,
 	.code = {
-		[0x0000] = INSTR2(SUB,  F,I),	0x0000, 1,
-		[0x0003] = INSTR2(CMPR, F,I),	0x0000, 0,
-		[0x0006] = INSTR2(JPTO, I,I),	0x0000, FGREATER,
+		[0x0000] = INSTR2(DIV,  F,I),	0x0000, 0,
+		[0x0003] = INSTR2(JTNA, I,I),	0x0000, FDIVZERO,
 	},
 };
 
@@ -242,5 +254,6 @@ void test_asm(void)
 {
 	do {
 		printf("countdown: %u\n", test_animal.ram[0]);
+		printf("flags: %u\n", test_animal.flags & FDIVZERO == FDIVZERO);
 	} while (!animal_step(&test_animal));
 }
