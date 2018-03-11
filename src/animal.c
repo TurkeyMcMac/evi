@@ -209,7 +209,7 @@ int animal_step(struct animal *self)
 		}
 	} break;
 	OP_CASE_JUMP_COND(JPTA, (self->flags | test) == self->flags);
-	OP_CASE_JUMP_COND(JTNA, ((self->flags | test) ^ test) == self->flags);
+	OP_CASE_JUMP_COND(JTNA, (self->flags & test) == 0);
 	OP_CASE_JUMP_COND(JPTO, (self->flags & test) != 0);
 	OP_CASE_JUMP_COND(JTNO, (self->flags & test) != test);
 /* Special */
