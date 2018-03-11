@@ -11,4 +11,5 @@ int main(void)
 	chem[CHEM_GREEN] =  24;
 	chem[CHEM_BLUE]  = 100;
 	grid_draw(g, stdout);
+	test_asm();
 }

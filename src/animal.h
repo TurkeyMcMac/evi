@@ -12,6 +12,16 @@ struct brain {
 	uint16_t code[];
 };
 
+enum flags {
+	FEQUAL = 1 << 0,
+	FGREATER = 1 << 1,
+	FLESSER = 1 << 2,
+	FINVAL_ARG = 1 << 3,
+	FROOB = 1 << 4,
+	FCOOB = 1 << 5,
+	FINVAL_OPCODE = 1 << 6,
+};
+
 struct animal {
 	struct animal *next;
 	struct brain *brain;
@@ -31,6 +41,7 @@ enum opcode {
 	OP_MOVE,	/* dest src */
 	OP_XCHG,	/* dest1 dest2 */
 	OP_FLAG,	/* dest */
+	OP_CFLG,	/* */
 /* Bitwise */
 	OP_AND,		/* dest src */
 	OP_OR,		/* dest src */
@@ -50,13 +61,11 @@ enum opcode {
 /* Control flow */
 	OP_JUMP,	/* dest */
 	OP_CMPR,	/* cmp1 cmp2 */
-	OP_TEST,	/* test1 test2 */
-	OP_JMPZ,	/* dest */
-	OP_JPNZ,	/* dest */
-	OP_JMPG,	/* dest */
-	OP_JPGE,	/* dest */
-	OP_JMPL,	/* dest */
-	OP_JPLE,	/* dest */
+	OP_BITS,	/* test1 test2 */
+	OP_JPTA,	/* dest test */
+	OP_JTNA,	/* dest test */
+	OP_JPTO,	/* dest test */
+	OP_JTNO,	/* dest test */
 /* Special */
 	OP_FACE,	/* direction */
 	OP_PICK,	/* id amount */
@@ -65,6 +74,10 @@ enum opcode {
 	OP_EAT,		/* id */
 	OP_CHEM,	/* dest id */
 	OP_BABY,	/* */
+
+	N_OPCODES
 };
+
+void test_asm(void);
 
 #endif /* Header guard */
