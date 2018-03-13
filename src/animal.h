@@ -20,7 +20,6 @@ enum flags {
 	FROOB = 1 << 4,
 	FCOOB = 1 << 5,
 	FINVAL_OPCODE = 1 << 6,
-	FDIVZERO = 1 << 7,
 };
 
 struct animal {
@@ -53,12 +52,6 @@ enum opcode {
 /* Arithmetic */
 	OP_ADD,		/* dest src */
 	OP_SUB,		/* dest src */
-	OP_MUL,		/* dest src */
-	OP_SMUL,	/* dest src */
-	OP_DIV,		/* dest src */
-	OP_SDIV,	/* dest src */
-	OP_MOD,		/* dest src */
-	OP_SMOD,	/* dest src */
 /* Control flow */
 	OP_JUMP,	/* dest */
 	OP_CMPR,	/* cmp1 cmp2 */

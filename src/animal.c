@@ -93,20 +93,6 @@ static int jump(struct animal *a, uint16_t dest)
 
 #define OP_CASE_UNSIGNED(name, action) OP_CASE_NUMERIC(name, uint16_t, action)
 
-#define OP_CASE_CHECK_ZERO(name, type, action) \
-	case OP_##name: { \
-		type temp, *dest = (type *)write_dest(self, l_fmt, get_arg(self, 1)); \
-		if (!dest || read_from(self, r_fmt, get_arg(self, 2), (type *)&temp)) \
-			break; \
-		if (temp != 0) { \
-			*dest action##= temp; \
-			self->flags &= ~FDIVZERO; \
-		} else { \
-			self->flags |= FDIVZERO; \
-			goto error; \
-		} \
-	} break
-
 #define OP_CASE_JUMP_COND(name, condition) \
 	case OP_##name: { \
 		uint16_t dest, test; \
@@ -179,12 +165,6 @@ int animal_step(struct animal *self)
 /* Arithmetic */
 	OP_CASE_UNSIGNED(ADD, +);
 	OP_CASE_UNSIGNED(SUB, -);
-	OP_CASE_UNSIGNED(MUL, *);
-	OP_CASE_NUMERIC(SMUL, int16_t, *);
-	OP_CASE_CHECK_ZERO(DIV, uint16_t, /);
-	OP_CASE_CHECK_ZERO(SDIV, int16_t, /);
-	OP_CASE_CHECK_ZERO(MOD, uint16_t, %);
-	OP_CASE_CHECK_ZERO(SMOD, int16_t, %);
 /* Control flow */
 	case OP_JUMP: {
 		uint16_t dest;
@@ -234,10 +214,11 @@ error:
 
 static struct brain test_brain = {
 	.ram_size = 6,
-	.code_size = 6,
+	.code_size = 9,
 	.code = {
-		[0x0000] = INSTR2(DIV,  F,I),	0x0000, 0,
-		[0x0003] = INSTR2(JTNA, I,I),	0x0000, FDIVZERO,
+		[0x0000] = INSTR2(ADD,  F,I),	0x0000, 1,
+		[0x0003] = INSTR2(CMPR, F,I),	0x0000, 1,
+		[0x0006] = INSTR2(JPTO, I,I),	0x0000, FLESSER,
 	},
 };
 
@@ -245,7 +226,7 @@ static struct animal test_animal = {
 	.instr_ptr = 0,
 	.brain = &test_brain,
 	.flags = 0,
-	.ram = {6000,0,0,0,0}
+	.ram = {-6000,0,0,0,0}
 };
 
 #include <stdio.h>
@@ -254,6 +235,6 @@ void test_asm(void)
 {
 	do {
 		printf("countdown: %u\n", test_animal.ram[0]);
-		printf("flags: %u\n", test_animal.flags & FDIVZERO == FDIVZERO);
+		printf("flags: %u\n", test_animal.flags);
 	} while (!animal_step(&test_animal));
 }
