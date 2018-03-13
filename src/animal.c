@@ -2,10 +2,6 @@
 
 #define OPCODE_MASK ((1 << 10) - 1)
 
-#define left_arg_format(op) (((op) >> 12) & 3)
-#define right_arg_format(op) (((op) >> 10) & 3)
-#define operation_size(op) ((op) >> 14)
-
 enum {
 	ARG_FMT_IMMEDIATE = 0,
 	ARG_FMT_FOLLOW_ONCE = 1,
