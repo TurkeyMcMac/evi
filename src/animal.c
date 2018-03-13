@@ -85,8 +85,8 @@ static int jump(struct animal *a, uint16_t dest)
 
 #define OP_CASE_NUMERIC(name, type, action) \
 	case OP_##name: { \
-		type temp, *dest = (type *)write_dest(self, l_fmt, get_arg(self, 1)); \
-		if (!dest || read_from(self, r_fmt, get_arg(self, 2), (type *)&temp)) \
+		type temp, *dest = (type *)write_dest(self, instr->l_fmt, instr->left); \
+		if (!dest || read_from(self, instr->r_fmt, instr->right, (type *)&temp)) \
 			break; \
 		*dest action##= temp; \
 	} break
@@ -96,8 +96,8 @@ static int jump(struct animal *a, uint16_t dest)
 #define OP_CASE_JUMP_COND(name, condition) \
 	case OP_##name: { \
 		uint16_t dest, test; \
-		if (read_from(self, l_fmt, get_arg(self, 1), &dest) \
-		 || read_from(self, r_fmt, get_arg(self, 2), &test)) \
+		if (read_from(self, instr->l_fmt, instr->left, &dest) \
+		 || read_from(self, instr->r_fmt, instr->right, &test)) \
 			goto error; \
 		if (condition) { \
 			if (jump(self, dest)) \
@@ -111,44 +111,37 @@ int animal_step(struct animal *self)
 {
 	if (self->instr_ptr >= self->brain->code_size)
 		return -1;
-	uint16_t op = self->brain->code[self->instr_ptr];
-	uint16_t op_size = operation_size(op),
-		 l_fmt = left_arg_format(op),
-		 r_fmt = right_arg_format(op);
-	uint16_t opcode = op & OPCODE_MASK;
-	if (opcode >= N_OPCODES) {
+	struct instruction *instr = &self->brain->code[self->instr_ptr];
+	if (instr->opcode >= N_OPCODES) {
 		set_instr_error(self, FINVAL_OPCODE);
 		++self->instr_ptr;
 		return 0;
 	}
-	if (self->instr_ptr + op_size > self->brain->code_size) {
-		return -1;
-	}
-	switch (opcode) {
+	switch (instr->opcode) {
 /* General */
 	case OP_MOVE: {
-		uint16_t *dest = write_dest(self, l_fmt, get_arg(self, 1));
-		if (!dest || read_from(self, r_fmt, get_arg(self, 2), dest))
+		uint16_t *dest = write_dest(self, instr->l_fmt, instr->left);
+		if (!dest || read_from(self, instr->r_fmt, instr->right, dest))
 			goto error;
 	} break;
 	case OP_XCHG: {
 		uint16_t temp, *destl, *destr;
-		if ((destl = write_dest(self, l_fmt, get_arg(self, 1))) == NULL
-		 || (destr = write_dest(self, r_fmt, get_arg(self, 2))) == NULL)
+		if ((destl = write_dest(self, instr->l_fmt, instr->left)) == NULL
+		 || (destr = write_dest(self, instr->r_fmt, instr->right)) == NULL)
 			goto error;
 		temp = *destl;
 		*destl = *destr;
 		*destr = temp;
 	} break;
 	case OP_GFLG: {
-		uint16_t *dest = write_dest(self, l_fmt, get_arg(self, 1));
+		uint16_t *dest = write_dest(self, instr->l_fmt, instr->left);
 		if (dest)
 			*dest = self->flags;
 		else
 			goto error;
 	} break;
 	case OP_SFLG: {
-		if (read_from(self, r_fmt, get_arg(self, 1), &self->flags))
+		if (read_from(self, instr->l_fmt, instr->left, &self->flags))
 			goto error;
 	} break;
 /* Bitwise */
@@ -156,9 +149,11 @@ int animal_step(struct animal *self)
 	OP_CASE_UNSIGNED(OR, |);
 	OP_CASE_UNSIGNED(XOR, ^);
 	case OP_NOT: {
-		uint16_t *dest = write_dest(self, l_fmt, get_arg(self, 1));
+		uint16_t *dest = write_dest(self, instr->l_fmt, instr->left);
 		if (dest)
 			*dest = ~*dest;
+		else
+			goto error;
 	} break;
 	OP_CASE_UNSIGNED(SHFR, >>);
 	OP_CASE_UNSIGNED(SHFL, <<);
@@ -168,14 +163,14 @@ int animal_step(struct animal *self)
 /* Control flow */
 	case OP_JUMP: {
 		uint16_t dest;
-		if (read_from(self, l_fmt, get_arg(self, 1), &dest)
+		if (read_from(self, instr->l_fmt, instr->left, &dest)
 		 || jump(self, dest))
 			goto error;
 	} return 0;
 	case OP_CMPR: {
 		int16_t left, right;
-		if (read_from(self, l_fmt, get_arg(self, 1), (uint16_t *)&left)
-		 || read_from(self, r_fmt, get_arg(self, 2), (uint16_t *)&right))
+		if (read_from(self, instr->l_fmt, instr->left, (uint16_t *)&left)
+		 || read_from(self, instr->r_fmt, instr->right, (uint16_t *)&right))
 			goto error;
 		if (left > right) {
 			self->flags |= FGREATER;
@@ -199,26 +194,25 @@ int animal_step(struct animal *self)
 	}
 	self->flags &= ~(FINVAL_ARG | FROOB | FCOOB | FINVAL_OPCODE);
 error:
-	self->instr_ptr += op_size;
+	++self->instr_ptr;
 	return 0;
 }
 
-/*                                   left format    right format   op size */
-#define INSTR2(i, lf, rf) (OP_##i | ((lf) << 12) | ((rf) << 10) | (3 << 14))
-#define INSTR1(i, lf, rf) (OP_##i | ((lf) << 12) | ((rf) << 10) | (2 << 14))
-#define INSTR0(i, lf, rf) (OP_##i | ((lf) << 12) | ((rf) << 10) | (1 << 14))
+#define INSTR2(opcode, l_fmt, left, r_fmt, right) {OP_##opcode, l_fmt, r_fmt, left, right}
+#define INSTR1(opcode, arg_fmt, arg) {.opcode = OP_##opcode, .l_fmt = arg_fmt, .left = arg}
+#define INSTR0(opcode) {OP_##opcode}
 
-#define I ARG_FMT_IMMEDIATE
-#define F ARG_FMT_FOLLOW_ONCE
-#define E ARG_FMT_FOLLOW_TWICE
+#define IM ARG_FMT_IMMEDIATE
+#define F1 ARG_FMT_FOLLOW_ONCE
+#define F2 ARG_FMT_FOLLOW_TWICE
 
 static struct brain test_brain = {
 	.ram_size = 6,
-	.code_size = 9,
+	.code_size = 3,
 	.code = {
-		[0x0000] = INSTR2(ADD,  F,I),	0x0000, 1,
-		[0x0003] = INSTR2(CMPR, F,I),	0x0000, 1,
-		[0x0006] = INSTR2(JPTO, I,I),	0x0000, FLESSER,
+		[0x0000] = INSTR2(ADD,  F1,0x0000, IM,1),
+		[0x0001] = INSTR2(CMPR, F1,0x0000, IM,1),
+		[0x0002] = INSTR2(JPTO, IM,0x0000, IM,FLESSER),
 	},
 };
 
