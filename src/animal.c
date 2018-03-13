@@ -83,17 +83,15 @@ static int jump(struct animal *a, uint16_t dest)
 	}
 }
 
-#define OP_CASE_NUMERIC(name, type, action) \
+#define OP_CASE_NUMERIC_BINARY(name, action) \
 	case OP_##name: { \
-		type temp, *dest = (type *)write_dest(self, instr->l_fmt, instr->left); \
-		if (!dest || read_from(self, instr->r_fmt, instr->right, (type *)&temp)) \
+		uint16_t temp, *dest = write_dest(self, instr->l_fmt, instr->left); \
+		if (!dest || read_from(self, instr->r_fmt, instr->right, &temp)) \
 			break; \
 		*dest action##= temp; \
 	} break
 
-#define OP_CASE_UNSIGNED(name, action) OP_CASE_NUMERIC(name, uint16_t, action)
-
-#define OP_CASE_UNARY(name, action) \
+#define OP_CASE_NUMERIC_UNARY(name, action) \
 	case OP_##name: { \
 		uint16_t *dest = write_dest(self, instr->l_fmt, instr->left); \
 		if (dest) \
@@ -154,17 +152,17 @@ int animal_step(struct animal *self)
 			goto error;
 	} break;
 /* Bitwise */
-	OP_CASE_UNSIGNED(AND, &);
-	OP_CASE_UNSIGNED(OR, |);
-	OP_CASE_UNSIGNED(XOR, ^);
-	OP_CASE_UNARY(NOT, *dest = ~*dest);
-	OP_CASE_UNSIGNED(SHFR, >>);
-	OP_CASE_UNSIGNED(SHFL, <<);
+	OP_CASE_NUMERIC_BINARY(AND, &);
+	OP_CASE_NUMERIC_BINARY(OR, |);
+	OP_CASE_NUMERIC_BINARY(XOR, ^);
+	OP_CASE_NUMERIC_UNARY(NOT, *dest = ~*dest);
+	OP_CASE_NUMERIC_BINARY(SHFR, >>);
+	OP_CASE_NUMERIC_BINARY(SHFL, <<);
 /* Arithmetic */
-	OP_CASE_UNSIGNED(ADD, +);
-	OP_CASE_UNSIGNED(SUB, -);
-	OP_CASE_UNARY(INCR, ++*dest);
-	OP_CASE_UNARY(DECR, --*dest);
+	OP_CASE_NUMERIC_BINARY(ADD, +);
+	OP_CASE_NUMERIC_BINARY(SUB, -);
+	OP_CASE_NUMERIC_UNARY(INCR, ++*dest);
+	OP_CASE_NUMERIC_UNARY(DECR, --*dest);
 /* Control flow */
 	case OP_JUMP: {
 		uint16_t dest;
