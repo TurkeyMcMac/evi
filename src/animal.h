@@ -23,6 +23,8 @@ enum opcode {
 /* Arithmetic */
 	OP_ADD,		/* dest src */
 	OP_SUB,		/* dest src */
+	OP_INCR,	/* increment */
+	OP_DECR,	/* decrement */
 /* Control flow */
 	OP_JUMP,	/* dest */
 	OP_CMPR,	/* cmp1 cmp2 */

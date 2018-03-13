@@ -93,6 +93,15 @@ static int jump(struct animal *a, uint16_t dest)
 
 #define OP_CASE_UNSIGNED(name, action) OP_CASE_NUMERIC(name, uint16_t, action)
 
+#define OP_CASE_UNARY(name, action) \
+	case OP_##name: { \
+		uint16_t *dest = write_dest(self, instr->l_fmt, instr->left); \
+		if (dest) \
+			(action); \
+		else \
+			goto error; \
+	} break;
+
 #define OP_CASE_JUMP_COND(name, condition) \
 	case OP_##name: { \
 		uint16_t dest, test; \
@@ -148,18 +157,14 @@ int animal_step(struct animal *self)
 	OP_CASE_UNSIGNED(AND, &);
 	OP_CASE_UNSIGNED(OR, |);
 	OP_CASE_UNSIGNED(XOR, ^);
-	case OP_NOT: {
-		uint16_t *dest = write_dest(self, instr->l_fmt, instr->left);
-		if (dest)
-			*dest = ~*dest;
-		else
-			goto error;
-	} break;
+	OP_CASE_UNARY(NOT, *dest = ~*dest);
 	OP_CASE_UNSIGNED(SHFR, >>);
 	OP_CASE_UNSIGNED(SHFL, <<);
 /* Arithmetic */
 	OP_CASE_UNSIGNED(ADD, +);
 	OP_CASE_UNSIGNED(SUB, -);
+	OP_CASE_UNARY(INCR, ++*dest);
+	OP_CASE_UNARY(DECR, --*dest);
 /* Control flow */
 	case OP_JUMP: {
 		uint16_t dest;
@@ -207,7 +212,7 @@ error:
 }
 
 #define INSTR2(opcode, l_fmt, left, r_fmt, right) {OP_##opcode, l_fmt, r_fmt, left, right}
-#define INSTR1(opcode, arg_fmt, arg) {.opcode = OP_##opcode, .l_fmt = arg_fmt, .left = arg}
+#define INSTR1(_opcode, arg_fmt, arg) {.opcode = OP_##_opcode, .l_fmt = arg_fmt, .left = arg}
 #define INSTR0(opcode) {OP_##opcode}
 
 #define IM ARG_FMT_IMMEDIATE
@@ -218,7 +223,7 @@ static struct brain test_brain = {
 	.ram_size = 6,
 	.code_size = 3,
 	.code = {
-		[0x0000] = INSTR2(ADD,  F1,0x0000, IM,1),
+		[0x0000] = INSTR1(INCR, F1,0x0000),
 		[0x0001] = INSTR2(CMPR, F1,0x0000, IM,0),
 		[0x0002] = INSTR2(JMPO, IM,0x0000, IM,FSLESSER),
 	},
