@@ -9,11 +9,14 @@ enum {
 	ARG_FMT_FOLLOW_TWICE = 2,
 };
 
-void set_instr_error(struct animal *a, uint16_t errs)
-{
-	a->flags |= errs;
-	a->flags &= errs ^ ~(FINVAL_ARG | FROOB | FCOOB | FINVAL_OPCODE);
-}
+#define paste2(t1, t2) t1##t2
+#define paste1(t1, t2) paste2(t1, t2)
+
+#define set_instr_error(a, errs) do { \
+	struct animal *paste2(_##a##_line_, __LINE__)  = (a); \
+	bits_off(paste2(_##a##_line_, __LINE__)->flags, FINVAL_ARG | FROOB | FCOOB | FINVAL_OPCODE); \
+	bits_on(paste2(_##a##_line_, __LINE__)->flags, (errs)); \
+} while (0)
 
 static int read_from(struct animal *a, uint_fast8_t fmt, uint16_t value, uint16_t *dest)
 {
