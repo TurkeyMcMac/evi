@@ -1,5 +1,8 @@
 #include "animal.h"
 
+#define bits_on(bitset, bits) ((bitset) |= (bits))
+#define bits_off(bitset, bits) ((bitset) &= ~(bits))
+
 enum {
 	ARG_FMT_IMMEDIATE = 0,
 	ARG_FMT_FOLLOW_ONCE = 1,
@@ -170,22 +173,22 @@ int animal_step(struct animal *self)
 		 || read_from(self, instr->r_fmt, instr->right, &right))
 			goto error;
 		if (left > right) {
-			self->flags |= FUGREATER;
-			self->flags &= ~(FULESSER | FEQUAL);
+			bits_on(self->flags, FUGREATER);
+			bits_off(self->flags, FULESSER | FEQUAL);
 		} else if (left < right) {
-			self->flags |= FULESSER;
-			self->flags &= ~(FEQUAL | FUGREATER);
+			bits_on(self->flags, FULESSER);
+			bits_off(self->flags, FUGREATER | FEQUAL);
 		} else {
-			self->flags |= FEQUAL;
-			self->flags &= ~(FULESSER | FUGREATER | FSLESSER | FSGREATER);
+			bits_on(self->flags, FEQUAL);
+			bits_off(self->flags, FULESSER | FUGREATER | FSLESSER | FSGREATER);
 			break;
 		}
 		if ((int16_t)left > (int16_t)right) {
-			self->flags |= FSGREATER;
-			self->flags &= ~FSLESSER;
+			bits_on(self->flags, FSGREATER);
+			bits_off(self->flags, FSLESSER);
 		} else if ((int16_t)left < (int16_t)right) {
-			self->flags |= FSLESSER;
-			self->flags &= ~FSGREATER;
+			bits_on(self->flags, FSLESSER);
+			bits_off(self->flags, FSGREATER);
 		}
 	} break;
 	OP_CASE_JUMP_COND(JMPA, (self->flags | test) == self->flags);
@@ -197,7 +200,7 @@ int animal_step(struct animal *self)
 		set_instr_error(self, FINVAL_OPCODE);
 	} goto error;
 	}
-	self->flags &= ~(FINVAL_ARG | FROOB | FCOOB | FINVAL_OPCODE);
+	bits_off(self->flags, FINVAL_ARG | FROOB | FCOOB | FINVAL_OPCODE);
 error:
 	++self->instr_ptr;
 	return 0;
