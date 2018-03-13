@@ -18,7 +18,7 @@ void set_instr_error(struct animal *a, uint16_t errs)
 	a->flags &= errs ^ ~(FINVAL_ARG | FROOB | FCOOB | FINVAL_OPCODE);
 }
 
-static int read_from(struct animal *a, uint16_t fmt, uint16_t value, uint16_t *dest)
+static int read_from(struct animal *a, uint_fast8_t fmt, uint16_t value, uint16_t *dest)
 {
 	switch (fmt) {
 	case ARG_FMT_IMMEDIATE:
@@ -47,7 +47,7 @@ static int read_from(struct animal *a, uint16_t fmt, uint16_t value, uint16_t *d
 	return 0;
 }
 
-static uint16_t *write_dest(struct animal *a, uint16_t fmt, uint16_t value)
+static uint16_t *write_dest(struct animal *a, uint_fast8_t fmt, uint16_t value)
 {
 	switch (fmt) {
 	case ARG_FMT_FOLLOW_ONCE:
