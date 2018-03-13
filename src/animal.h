@@ -56,12 +56,14 @@ struct brain {
 
 enum flags {
 	FEQUAL = 1 << 0,
-	FGREATER = 1 << 1,
-	FLESSER = 1 << 2,
-	FINVAL_ARG = 1 << 3,
-	FROOB = 1 << 4,
-	FCOOB = 1 << 5,
-	FINVAL_OPCODE = 1 << 6,
+	FUGREATER = 1 << 1,
+	FULESSER = 1 << 2,
+	FSGREATER = 1 << 3,
+	FSLESSER = 1 << 4,
+	FINVAL_ARG = 1 << 5,
+	FROOB = 1 << 6,
+	FCOOB = 1 << 7,
+	FINVAL_OPCODE = 1 << 8,
 };
 
 struct animal {

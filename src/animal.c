@@ -168,19 +168,27 @@ int animal_step(struct animal *self)
 			goto error;
 	} return 0;
 	case OP_CMPR: {
-		int16_t left, right;
-		if (read_from(self, instr->l_fmt, instr->left, (uint16_t *)&left)
-		 || read_from(self, instr->r_fmt, instr->right, (uint16_t *)&right))
+		uint16_t left, right;
+		if (read_from(self, instr->l_fmt, instr->left, &left)
+		 || read_from(self, instr->r_fmt, instr->right, &right))
 			goto error;
 		if (left > right) {
-			self->flags |= FGREATER;
-			self->flags &= ~(FLESSER | FEQUAL);
+			self->flags |= FUGREATER;
+			self->flags &= ~(FULESSER | FEQUAL);
 		} else if (left < right) {
-			self->flags |= FLESSER;
-			self->flags &= ~(FEQUAL | FGREATER);
+			self->flags |= FULESSER;
+			self->flags &= ~(FEQUAL | FUGREATER);
 		} else {
 			self->flags |= FEQUAL;
-			self->flags &= ~(FLESSER | FGREATER);
+			self->flags &= ~(FULESSER | FUGREATER | FSLESSER | FSGREATER);
+			break;
+		}
+		if ((int16_t)left > (int16_t)right) {
+			self->flags |= FSGREATER;
+			self->flags &= ~FSLESSER;
+		} else if ((int16_t)left < (int16_t)right) {
+			self->flags |= FSLESSER;
+			self->flags &= ~FSGREATER;
 		}
 	} break;
 	OP_CASE_JUMP_COND(JMPA, (self->flags | test) == self->flags);
@@ -211,8 +219,8 @@ static struct brain test_brain = {
 	.code_size = 3,
 	.code = {
 		[0x0000] = INSTR2(ADD,  F1,0x0000, IM,1),
-		[0x0001] = INSTR2(CMPR, F1,0x0000, IM,1),
-		[0x0002] = INSTR2(JMPO, IM,0x0000, IM,FLESSER),
+		[0x0001] = INSTR2(CMPR, F1,0x0000, IM,0),
+		[0x0002] = INSTR2(JMPO, IM,0x0000, IM,FSLESSER),
 	},
 };
 
