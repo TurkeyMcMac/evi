@@ -1,5 +1,36 @@
 #include "animal.h"
 
+#define OP_INFO(name, kind, energy) [OP_##name] = {#name, OP_KIND_##kind, energy}
+
+const struct opcode_info op_info[N_OPCODES] = {
+	/*	Name	Kind	Energy */
+	OP_INFO(MOVE,	GEN,	     1),
+	OP_INFO(XCHG,	GEN,	     2),
+	OP_INFO(GFLG,	GEN,	     1),
+	OP_INFO(SFLG,	GEN,	     1),
+	OP_INFO(AND,	BIT,	     4),
+	OP_INFO(OR,	BIT,	     4),
+	OP_INFO(XOR,	BIT,	     4),
+	OP_INFO(NOT,	BIT,	     3),
+	OP_INFO(SHFR,	BIT,	     4),
+	OP_INFO(SHFL,	BIT,	     4),
+	OP_INFO(ADD,	ARITH,	     6),
+	OP_INFO(SUB,	ARITH,	     6),
+	OP_INFO(INCR,	ARITH,	     4),
+	OP_INFO(DECR,	ARITH,	     4),
+	OP_INFO(JUMP,	CNTRL,	     4),
+	OP_INFO(CMPR,	CNTRL,	     6),
+	OP_INFO(JMPA,	CNTRL,	     6),
+	OP_INFO(JPNA,	CNTRL,	     6),
+	OP_INFO(JMPO,	CNTRL,	     6),
+	OP_INFO(JPNO,	CNTRL,	     6),
+	OP_INFO(FACE,	SPEC,	     7),
+	OP_INFO(PICK,	SPEC,	     8),
+	OP_INFO(DROP,	SPEC,	     7),
+	OP_INFO(CONV,	SPEC,	    10),
+	OP_INFO(BABY,	SPEC,	     5),
+};
+
 #define bits_on(bitset, bits) ((bitset) |= (bits))
 #define bits_off(bitset, bits) ((bitset) &= ~(bits))
 
@@ -204,6 +235,10 @@ int animal_step(struct animal *self)
 	} goto error;
 	}
 	bits_off(self->flags, FINVAL_ARG | FROOB | FCOOB | FINVAL_OPCODE);
+	if (self->energy < op_info[instr->opcode].energy)
+		self->energy = 0;
+	else
+		self->energy -= op_info[instr->opcode].energy;
 error:
 	++self->instr_ptr;
 	return 0;
@@ -238,6 +273,7 @@ static struct animal test_animal = {
 
 void test_asm(void)
 {
+	printf("%s\n", op_info[OP_BABY].name);
 	do {
 		printf("countdown: %u\n", test_animal.ram[0]);
 		printf("flags: %u\n", test_animal.flags);

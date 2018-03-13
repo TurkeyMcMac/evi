@@ -84,4 +84,18 @@ struct animal {
 
 void test_asm(void);
 
+enum opcode_kind {
+	OP_KIND_GEN,
+	OP_KIND_BIT,
+	OP_KIND_ARITH,
+	OP_KIND_CNTRL,
+	OP_KIND_SPEC,
+};
+
+extern const struct opcode_info {
+	char name[5];
+	uint8_t kind;
+	uint16_t energy;
+} op_info[N_OPCODES];
+
 #endif /* Header guard */
