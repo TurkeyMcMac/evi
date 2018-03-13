@@ -1,7 +1,5 @@
 #include "animal.h"
 
-#define OPCODE_MASK ((1 << 10) - 1)
-
 enum {
 	ARG_FMT_IMMEDIATE = 0,
 	ARG_FMT_FOLLOW_ONCE = 1,
