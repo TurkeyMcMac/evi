@@ -183,10 +183,10 @@ int animal_step(struct animal *self)
 			self->flags &= ~(FLESSER | FGREATER);
 		}
 	} break;
-	OP_CASE_JUMP_COND(JPTA, (self->flags | test) == self->flags);
-	OP_CASE_JUMP_COND(JTNA, (self->flags & test) == 0);
-	OP_CASE_JUMP_COND(JPTO, (self->flags & test) != 0);
-	OP_CASE_JUMP_COND(JTNO, (self->flags & test) != test);
+	OP_CASE_JUMP_COND(JMPA, (self->flags | test) == self->flags);
+	OP_CASE_JUMP_COND(JPNA, (self->flags & test) == 0);
+	OP_CASE_JUMP_COND(JMPO, (self->flags & test) != 0);
+	OP_CASE_JUMP_COND(JPNO, (self->flags & test) != test);
 /* Special */
 	default: {
 		set_instr_error(self, FINVAL_OPCODE);
@@ -212,7 +212,7 @@ static struct brain test_brain = {
 	.code = {
 		[0x0000] = INSTR2(ADD,  F1,0x0000, IM,1),
 		[0x0001] = INSTR2(CMPR, F1,0x0000, IM,1),
-		[0x0002] = INSTR2(JPTO, IM,0x0000, IM,FLESSER),
+		[0x0002] = INSTR2(JMPO, IM,0x0000, IM,FLESSER),
 	},
 };
 

@@ -26,10 +26,10 @@ enum opcode {
 /* Control flow */
 	OP_JUMP,	/* dest */
 	OP_CMPR,	/* cmp1 cmp2 */
-	OP_JPTA,	/* dest test */
-	OP_JTNA,	/* dest test */
-	OP_JPTO,	/* dest test */
-	OP_JTNO,	/* dest test */
+	OP_JMPA,	/* dest test */
+	OP_JPNA,	/* dest test */
+	OP_JMPO,	/* dest test */
+	OP_JPNO,	/* dest test */
 /* Special */
 	OP_FACE,	/* direction */
 	OP_PICK,	/* id amount */
