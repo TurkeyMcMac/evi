@@ -1,13 +1,13 @@
 #include "animal.h"
 
-#define OP_INFO(name, kind, energy) [OP_##name] = {#name, OP_KIND_##kind, energy}
+#define OP_INFO(name, chem, energy) [OP_##name] = {#name, CHEM_M##chem, energy}
 
 const struct opcode_info op_info[N_OPCODES] = {
-	/*	Name	Kind	Energy */
-	OP_INFO(MOVE,	GEN,	     1),
-	OP_INFO(XCHG,	GEN,	     2),
-	OP_INFO(GFLG,	GEN,	     1),
-	OP_INFO(SFLG,	GEN,	     1),
+	/*	Name	Chem	Energy */
+	OP_INFO(MOVE,	GENRL,	     1),
+	OP_INFO(XCHG,	GENRL,	     2),
+	OP_INFO(GFLG,	GENRL,	     1),
+	OP_INFO(SFLG,	GENRL,	     1),
 	OP_INFO(AND,	BIT,	     4),
 	OP_INFO(OR,	BIT,	     4),
 	OP_INFO(XOR,	BIT,	     4),
