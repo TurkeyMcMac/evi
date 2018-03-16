@@ -13,6 +13,7 @@ enum opcode {
 	OP_XCHG,	/* dest1 dest2 */
 	OP_GFLG,	/* dest */
 	OP_SFLG,	/* src */
+	OP_GIPT,	/* dest */
 /* Bitwise */
 	OP_AND,		/* dest src */
 	OP_OR,		/* dest src */

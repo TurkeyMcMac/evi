@@ -8,6 +8,7 @@ const struct opcode_info op_info[N_OPCODES] = {
 	OP_INFO(XCHG,	GENRL,	     2),
 	OP_INFO(GFLG,	GENRL,	     1),
 	OP_INFO(SFLG,	GENRL,	     1),
+	OP_INFO(GIPT,	GENRL,	     1),
 	OP_INFO(AND,	BIT,	     4),
 	OP_INFO(OR,	BIT,	     4),
 	OP_INFO(XOR,	BIT,	     4),
@@ -180,6 +181,13 @@ int animal_step(struct animal *self)
 	} break;
 	case OP_SFLG: {
 		if (read_from(self, instr->l_fmt, instr->left, &self->flags))
+			goto error;
+	} break;
+	case OP_GIPT: {
+		uint16_t *dest = write_dest(self, instr->l_fmt, instr->left);
+		if (dest)
+			*dest = self->instr_ptr;
+		else
 			goto error;
 	} break;
 /* Bitwise */
