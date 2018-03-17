@@ -1,6 +1,10 @@
 #include "animal.h"
 
+#include <limits.h>
+
 #define OP_INFO(name, chem, energy) [OP_##name] = {#name, CHEM_M##chem, energy}
+
+#define GNRG_COST 1
 
 const struct opcode_info op_info[N_OPCODES] = {
 	/*	Name	Chem	Energy */
@@ -25,15 +29,21 @@ const struct opcode_info op_info[N_OPCODES] = {
 	OP_INFO(JPNA,	CNTRL,	     6),
 	OP_INFO(JMPO,	CNTRL,	     6),
 	OP_INFO(JPNO,	CNTRL,	     6),
-	OP_INFO(FACE,	SPEC,	     7),
 	OP_INFO(PICK,	SPEC,	     8),
 	OP_INFO(DROP,	SPEC,	     7),
-	OP_INFO(CONV,	SPEC,	    10),
+	OP_INFO(LCHM,	SPEC,	     3),
+	OP_INFO(LNML,	SPEC,	     3),
 	OP_INFO(BABY,	SPEC,	     5),
+	OP_INFO(CONV,	SPEC,	    10),
+	OP_INFO(EAT,	SPEC,	     2),
+	OP_INFO(GCHM,	SPEC,	     2),
+	OP_INFO(GHLT,	SPEC,	     1),
+	OP_INFO(GNRG,	SPEC,	GNRG_COST),
 };
 
 #define bits_on(bitset, bits) ((bitset) |= (bits))
 #define bits_off(bitset, bits) ((bitset) &= ~(bits))
+#define FERRORS (FINVAL_ARG | FROOB | FCOOB | FINVAL_OPCODE | FNO_RESOURCE)
 
 enum {
 	ARG_FMT_IMMEDIATE = 0,
@@ -44,9 +54,9 @@ enum {
 #define paste2(t1, t2) t1##t2
 #define paste1(t1, t2) paste2(t1, t2)
 
-#define set_instr_error(a, errs) do { \
+#define set_error(a, errs) do { \
 	struct animal *paste2(_##a##_line_, __LINE__)  = (a); \
-	bits_off(paste2(_##a##_line_, __LINE__)->flags, FINVAL_ARG | FROOB | FCOOB | FINVAL_OPCODE); \
+	bits_off(paste2(_##a##_line_, __LINE__)->flags, FERRORS); \
 	bits_on(paste2(_##a##_line_, __LINE__)->flags, (errs)); \
 } while (0)
 
@@ -60,7 +70,7 @@ static int read_from(struct animal *a, uint_fast8_t fmt, uint16_t value, uint16_
 		if (value < a->brain->ram_size)
 			*dest = a->ram[value];
 		else {
-			set_instr_error(a, FROOB);
+			set_error(a, FROOB);
 			return -1;
 		}
 		break;
@@ -68,12 +78,12 @@ static int read_from(struct animal *a, uint_fast8_t fmt, uint16_t value, uint16_
 		if (value < a->brain->ram_size && a->ram[value] < a->brain->ram_size)
 			*dest = a->ram[a->ram[value]];
 		else {
-			set_instr_error(a, FROOB);
+			set_error(a, FROOB);
 			return -1;
 		}
 		break;
 	default:
-		set_instr_error(a, FINVAL_ARG);
+		set_error(a, FINVAL_ARG);
 		return -1;
 	}
 	return 0;
@@ -86,18 +96,18 @@ static uint16_t *write_dest(struct animal *a, uint_fast8_t fmt, uint16_t value)
 		if (value < a->brain->ram_size) {
 			return &a->ram[value];
 		} else {
-			set_instr_error(a, FROOB);
+			set_error(a, FROOB);
 			return NULL;
 		}
 	case ARG_FMT_FOLLOW_TWICE:
 		if (value < a->brain->ram_size && a->ram[value] < a->brain->ram_size) {
 			return &a->ram[a->ram[value]];
 		} else {
-			set_instr_error(a, FROOB);
+			set_error(a, FROOB);
 			return NULL;
 		}
 	default:
-		set_instr_error(a, FINVAL_ARG);
+		set_error(a, FINVAL_ARG);
 		return NULL;
 	}
 }
@@ -107,7 +117,7 @@ static uint16_t *write_dest(struct animal *a, uint_fast8_t fmt, uint16_t value)
 static int jump(struct animal *a, uint16_t dest)
 {
 	if (dest >= a->brain->code_size) {
-		set_instr_error(a, FCOOB);
+		set_error(a, FCOOB);
 		return -1;
 	} else {
 		a->instr_ptr = dest;
@@ -142,20 +152,20 @@ static int jump(struct animal *a, uint16_t dest)
 			if (jump(self, dest)) \
 				goto error; \
 			else \
-				return 0; \
+				return; \
 		} \
 	} break
 
-int animal_step(struct animal *self)
+void animal_step(struct animal *self)
 {
 	if (self->instr_ptr >= self->brain->code_size)
-		return -1;
+		return;
 	struct instruction *instr = &self->brain->code[self->instr_ptr];
 	if (instr->opcode >= N_OPCODES) {
-		set_instr_error(self, FINVAL_OPCODE);
-		++self->instr_ptr;
-		return 0;
+		set_error(self, FINVAL_OPCODE);
+		goto error;
 	}
+	self->action.opcode = 0;
 	switch (instr->opcode) {
 /* General */
 	case OP_MOVE: {
@@ -208,7 +218,7 @@ int animal_step(struct animal *self)
 		if (read_from(self, instr->l_fmt, instr->left, &dest)
 		 || jump(self, dest))
 			goto error;
-	} return 0;
+	} return;
 	case OP_CMPR: {
 		uint16_t left, right;
 		if (read_from(self, instr->l_fmt, instr->left, &left)
@@ -238,18 +248,84 @@ int animal_step(struct animal *self)
 	OP_CASE_JUMP_COND(JMPO, (self->flags & test) != 0);
 	OP_CASE_JUMP_COND(JPNO, (self->flags & test) != test);
 /* Special */
+	case OP_PICK: case OP_DROP: case OP_LCHM: case OP_LNML: case OP_BABY: {
+		/* This is an interaction with the world, so it must be handled externally. */
+		self->action = *instr;
+	} break;
+	case OP_CONV: {
+		uint16_t c1, c2;
+		if (read_from(self, instr->l_fmt, instr->left, &c1)
+		 || read_from(self, instr->r_fmt, instr->right, &c2))
+			goto error;
+		if (c1 >= N_CHEMICALS || c2 >= N_CHEMICALS) {
+			set_error(self, FINVAL_ARG);
+			goto error;
+		}
+		if (self->stomach[c1] > 0 && self->stomach[c2] > 0) {
+			--self->stomach[c1];
+			--self->stomach[c2];
+			++self->stomach[combine_chemicals(c1, c2)];
+		} else {
+			set_error(self, FNO_RESOURCE);
+			goto error;
+		}
+	} break;
+	case OP_EAT: {
+		uint16_t chem, amount;
+		if (read_from(self, instr->l_fmt, instr->left, &chem)
+		 || read_from(self, instr->r_fmt, instr->right, &amount))
+			goto error;
+		if (chem >= N_CHEMICALS) {
+			set_error(self, FINVAL_ARG);
+			goto error;
+		}
+		amount &= UINT8_MAX;
+		if (amount > self->stomach[chem]) {
+			set_error(self, FNO_RESOURCE);
+			goto error;
+		} else {
+			self->stomach[chem] -= amount;
+			self->energy += amount * chemical_table[chem].energy;
+		}
+	} break;
+	case OP_GCHM: {
+		uint16_t chem, *dest = write_dest(self, instr->l_fmt, instr->left);
+		if (!dest || read_from(self, instr->r_fmt, instr->right, &chem))
+			goto error;
+		if (chem >= N_CHEMICALS) {
+			set_error(self, FINVAL_ARG);
+			goto error;
+		}
+		*dest = self->stomach[chem];
+	} break;
+	case OP_GHLT: {
+		uint16_t *dest = write_dest(self, instr->l_fmt, instr->left);
+		if (dest)
+			*dest = self->health;
+		else
+			goto error;
+	} break;
+	case OP_GNRG: {
+		uint16_t *dest = write_dest(self, instr->l_fmt, instr->left);
+		if (dest)
+			*dest = self->energy - GNRG_COST; /* We don't have to deal with underflow
+			                                     because if it occurs, the animal will
+							     die immediately before being able to
+							     react. */
+		else
+			goto error;
+	} break;
 	default: {
-		set_instr_error(self, FINVAL_OPCODE);
+		set_error(self, FINVAL_OPCODE);
 	} goto error;
 	}
-	bits_off(self->flags, FINVAL_ARG | FROOB | FCOOB | FINVAL_OPCODE);
+	bits_off(self->flags, FERRORS);
 	if (self->energy < op_info[instr->opcode].energy)
 		self->energy = 0;
 	else
 		self->energy -= op_info[instr->opcode].energy;
 error:
 	++self->instr_ptr;
-	return 0;
 }
 
 #define INSTR2(opcode, l_fmt, left, r_fmt, right) {OP_##opcode, l_fmt, r_fmt, left, right}
@@ -264,9 +340,9 @@ static struct brain test_brain = {
 	.ram_size = 6,
 	.code_size = 3,
 	.code = {
-		[0x0000] = INSTR1(INCR, F1,0x0000),
-		[0x0001] = INSTR2(CMPR, F1,0x0000, IM,0),
-		[0x0002] = INSTR2(JMPO, IM,0x0000, IM,FSLESSER),
+		[0x0000] = INSTR1(GNRG, F1,0x0000),
+		[0x0001] = INSTR2(CMPR, F1,0x0000, IM,100),
+		[0x0002] = INSTR2(JMPO, IM,0x0000, IM,FUGREATER),
 	},
 };
 
@@ -274,7 +350,8 @@ static struct animal test_animal = {
 	.instr_ptr = 0,
 	.brain = &test_brain,
 	.flags = 0,
-	.ram = {-6000,0,0,0,0}
+	.energy = 1000,
+	.ram = {0,0,0,0,0}
 };
 
 #include <stdio.h>
@@ -283,7 +360,9 @@ void test_asm(void)
 {
 	printf("%s\n", op_info[OP_BABY].name);
 	do {
+		animal_step(&test_animal);
 		printf("countdown: %u\n", test_animal.ram[0]);
 		printf("flags: %u\n", test_animal.flags);
-	} while (!animal_step(&test_animal));
+	} while (test_animal.instr_ptr < test_animal.brain->code_size && test_animal.energy > 0);
+	printf("energy: %u\n", test_animal.energy);
 }

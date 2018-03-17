@@ -34,13 +34,16 @@ enum opcode {
 	OP_JMPO,	/* dest test */
 	OP_JPNO,	/* dest test */
 /* Special */
-	OP_FACE,	/* direction */
-	OP_PICK,	/* id amount */
-	OP_DROP,	/* id amount */
+	OP_PICK,	/* direction num:8,id:8 */
+	OP_DROP,	/* direction num:8,id:8 */
+	OP_LCHM,	/* dest id:6,x:5,y:5 */
+	OP_LNML,	/* dest x:8,y:8 */
+	OP_BABY,	/* direction */
 	OP_CONV,	/* id1 id2 */
-	OP_EAT,		/* id */
-	OP_CHEM,	/* dest id */
-	OP_BABY,	/* */
+	OP_EAT,		/* id num */
+	OP_GCHM,	/* dest id */
+	OP_GHLT,	/* dest */
+	OP_GNRG,	/* dest */
 
 	N_OPCODES
 };
@@ -67,18 +70,19 @@ enum flags {
 	FROOB = 1 << 6,
 	FCOOB = 1 << 7,
 	FINVAL_OPCODE = 1 << 8,
+	FNO_RESOURCE = 1 << 9,
 };
 
 struct animal {
 	struct animal *next;
 	struct brain *brain;
 	size_t x, y;
-	uint8_t action, direction;
 	uint16_t health;
 	uint16_t energy;
 	uint16_t lifetime;
 	uint16_t instr_ptr;
 	uint16_t flags;
+	struct instruction action;
 	uint8_t stomach[N_CHEMICALS];
 	uint16_t ram[];
 };
