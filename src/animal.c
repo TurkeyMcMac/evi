@@ -32,9 +32,12 @@ const struct opcode_info op_info[N_OPCODES] = {
 	OP_INFO(JPNO,	CNTRL,	     6),
 	OP_INFO(PICK,	SPEC,	     8),
 	OP_INFO(DROP,	SPEC,	     7),
-	OP_INFO(LCHM,	SPEC,	     3),
-	OP_INFO(LNML,	SPEC,	     3),
+	OP_INFO(LCHM,	SPEC,	     7),
+	OP_INFO(LNML,	SPEC,	     7),
 	OP_INFO(BABY,	SPEC,	     5),
+	OP_INFO(BABY,	SPEC,	     5),
+	OP_INFO(STEP,	SPEC,	     7),
+	OP_INFO(ATTK,	SPEC,	     7),
 	OP_INFO(CONV,	SPEC,	    10),
 	OP_INFO(EAT,	SPEC,	     2),
 	OP_INFO(GCHM,	SPEC,	     2),
@@ -45,6 +48,22 @@ const struct opcode_info op_info[N_OPCODES] = {
 #define bits_on(bitset, bits) ((bitset) |= (bits))
 #define bits_off(bitset, bits) ((bitset) &= ~(bits))
 #define FERRORS (FINVAL_ARG | FROOB | FCOOB | FINVAL_OPCODE | FNO_RESOURCE | FFULL | FBLOCKED)
+
+static void sub_saturate(uint16_t *dest, uint16_t src)
+{
+	if (*dest < src)
+		*dest = 0;
+	else
+		*dest -= src;
+}
+
+static void add_saturate(uint16_t *dest, uint16_t src)
+{
+	if ((long)*dest + (long)src > UINT16_MAX)
+		*dest = UINT16_MAX;
+	else
+		*dest += src;
+}
 
 enum {
 	ARG_FMT_IMMEDIATE = 0,
@@ -249,7 +268,8 @@ void animal_step(struct animal *self)
 	OP_CASE_JUMP_COND(JMPO, (self->flags & test) != 0);
 	OP_CASE_JUMP_COND(JPNO, (self->flags & test) != test);
 /* Special */
-	case OP_PICK: case OP_DROP: case OP_LCHM: case OP_LNML: case OP_BABY: {
+	case OP_PICK: case OP_DROP: case OP_LCHM: case OP_LNML: case OP_BABY: case OP_STEP:
+	case OP_ATTK: {
 		/* This is an interaction with the world, so it must be handled externally. */
 		self->action = *instr;
 	} break;
@@ -286,7 +306,7 @@ void animal_step(struct animal *self)
 			goto error;
 		} else {
 			self->stomach[chem] -= amount;
-			self->energy += amount * chemical_table[chem].energy;
+			add_saturate(&self->energy, amount * chemical_table[chem].energy);
 		}
 	} break;
 	case OP_GCHM: {
@@ -321,10 +341,7 @@ void animal_step(struct animal *self)
 	} goto error;
 	}
 	bits_off(self->flags, FERRORS);
-	if (self->energy < op_info[instr->opcode].energy)
-		self->energy = 0;
-	else
-		self->energy -= op_info[instr->opcode].energy;
+	sub_saturate(&self->energy, op_info[instr->opcode].energy);
 error:
 	++self->instr_ptr;
 }
@@ -463,6 +480,34 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 			set_error(self, FNO_RESOURCE);
 	} break;
 	case OP_BABY: {} break;
+	case OP_STEP: {
+		uint16_t direction;
+		if (read_from(self, self->action.l_fmt, self->action.left, &direction))
+			break;
+		struct tile *dest = in_direction(g, direction, x, y);
+		if (!dest->animal) {
+			dest->animal = self;
+			grid_get_unck(g, x, y)->animal = NULL;
+		} else
+			set_error(self, FBLOCKED);
+	} break;
+	case OP_ATTK: {
+		uint16_t direction, power;
+		if (read_from(self, self->action.l_fmt, self->action.left, &direction)
+		 || read_from(self, self->action.r_fmt, self->action.right, &power))
+			break;
+		struct tile *targ = in_direction(g, direction, x, y);
+		if (!targ) {
+			set_error(self, FBLOCKED);
+			break;
+		}
+		if (!targ->animal) {
+			set_error(self, FNO_RESOURCE);
+			break;
+		}
+		sub_saturate(&self->energy, power / 2);
+		sub_saturate(&targ->animal->health, power);
+	} break;
 	default:
 		break;
 	}

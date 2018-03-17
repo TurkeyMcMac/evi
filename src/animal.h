@@ -44,6 +44,8 @@ enum opcode {
 	OP_LCHM,	/* dest id:6,x:5,y:5 */
 	OP_LNML,	/* dest _:6,x:5,y:5 */
 	OP_BABY,	/* direction */
+	OP_STEP,	/* direction */
+	OP_ATTK,	/* direction power */
 	OP_CONV,	/* id1 id2 */
 	OP_EAT,		/* id num */
 	OP_GCHM,	/* dest id */
