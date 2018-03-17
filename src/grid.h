@@ -2,11 +2,13 @@
 
 #define _GRID_H
 
+#include "animal.h"
 #include "chemicals.h"
 #include <stddef.h>
 #include <stdio.h>
 
 struct tile {
+	struct animal *animal;
 	uint8_t chemicals[N_CHEMICALS];
 };
 

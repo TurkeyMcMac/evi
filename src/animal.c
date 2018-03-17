@@ -1,5 +1,6 @@
 #include "animal.h"
 
+#include "grid.h"
 #include <limits.h>
 
 #define OP_INFO(name, chem, energy) [OP_##name] = {#name, CHEM_M##chem, energy}
@@ -43,7 +44,7 @@ const struct opcode_info op_info[N_OPCODES] = {
 
 #define bits_on(bitset, bits) ((bitset) |= (bits))
 #define bits_off(bitset, bits) ((bitset) &= ~(bits))
-#define FERRORS (FINVAL_ARG | FROOB | FCOOB | FINVAL_OPCODE | FNO_RESOURCE)
+#define FERRORS (FINVAL_ARG | FROOB | FCOOB | FINVAL_OPCODE | FNO_RESOURCE | FFULL | FBLOCKED)
 
 enum {
 	ARG_FMT_IMMEDIATE = 0,
@@ -326,6 +327,145 @@ void animal_step(struct animal *self)
 		self->energy -= op_info[instr->opcode].energy;
 error:
 	++self->instr_ptr;
+}
+
+enum {
+	DIRECTION_UP,
+	DIRECTION_RIGHT,
+	DIRECTION_DOWN,
+	DIRECTION_LEFT,
+	DIRECTION_HERE,
+};
+
+static struct tile *in_direction(struct grid *g, uint16_t direction, size_t x, size_t y)
+{
+	switch (direction) {
+	case DIRECTION_UP:
+		--y;
+		break;
+	case DIRECTION_RIGHT:
+		++x;
+		break;
+	case DIRECTION_DOWN:
+		++y;
+		break;
+	case DIRECTION_LEFT:
+		--x;
+		break;
+	default:
+		break;
+	}
+	return grid_get(g, x, y);
+}
+
+static void transfer(struct animal *a,
+		uint8_t dest[N_CHEMICALS],
+		uint8_t src[N_CHEMICALS],
+		uint8_t num,
+		uint8_t id)
+{
+	if (id >= N_CHEMICALS) {
+		set_error(a, FINVAL_ARG);
+		return;
+	}
+	bits_off(a->flags, FERRORS);
+	if (src[id] < num) {
+		bits_on(a->flags, FNO_RESOURCE);
+		num = src[id];
+	}
+	if ((unsigned)dest[id] + (unsigned)num > UINT8_MAX) {
+		bits_on(a->flags, FFULL);
+		num = UINT8_MAX - dest[id];
+	}
+	dest[id] += num;
+	src[id] -= num;
+}
+
+const struct tile *get_relative(const struct grid *g,
+		uint16_t relative_x_and_y,
+		size_t x,
+		size_t y)
+{
+	size_t relative_x = (relative_x_and_y >> 5) & ((1 << 4) - 1),
+	       relative_y = relative_x_and_y & ((1 << 4) - 1);
+	if (relative_x_and_y & (1 << 9)) {
+		relative_x |= ~0xF;
+	}
+	if (relative_x_and_y & (1 << 5)) {
+		relative_y |= ~0xF;
+	}
+	x += relative_x;
+	y += relative_y;
+	return grid_get_const(g, x, y);
+}
+
+void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
+{
+	switch (self->action.opcode) {
+	case OP_PICK: {
+		uint16_t direction, num_and_id;
+		if (read_from(self, self->action.l_fmt, self->action.left, &direction)
+		 || read_from(self, self->action.r_fmt, self->action.right, &num_and_id))
+			break;
+		struct tile *targ = in_direction(g, direction, x, y);
+		if (!targ) {
+			set_error(self, FBLOCKED);
+			break;
+		}
+		uint8_t num = num_and_id >> 8,
+			id = num_and_id & UINT8_MAX;
+		transfer(self, self->stomach, targ->chemicals, num, id);
+	} break;
+	case OP_DROP: {
+		uint16_t direction, num_and_id;
+		if (read_from(self, self->action.l_fmt, self->action.left, &direction)
+		 || read_from(self, self->action.r_fmt, self->action.right, &num_and_id))
+			break;
+		struct tile *targ = in_direction(g, direction, x, y);
+		if (!targ) {
+			set_error(self, FBLOCKED);
+			break;
+		}
+		uint8_t num = num_and_id >> 8,
+			id = num_and_id & UINT8_MAX;
+		transfer(self, targ->chemicals, self->stomach, num, id);
+	} break;
+	case OP_LCHM: {
+		uint16_t id_and_x_and_y, *dest =
+			write_dest(self, self->action.l_fmt, self->action.left);
+		if (!dest
+		 || read_from(self, self->action.r_fmt, self->action.right, &id_and_x_and_y))
+			break;
+		const struct tile *look = get_relative(g, id_and_x_and_y, x, y);
+		if (!look) {
+			set_error(self, FBLOCKED);
+			break;
+		}
+		uint16_t id = id_and_x_and_y >> 10;
+		if (id >= N_CHEMICALS) {
+			set_error(self, FINVAL_ARG);
+			break;
+		}
+		*dest = look->chemicals[id];
+	} break;
+	case OP_LNML: {
+		uint16_t x_and_y, *dest = write_dest(self, self->action.l_fmt, self->action.left);
+		if (!dest || read_from(self, self->action.r_fmt, self->action.right, &x_and_y))
+			break;
+		const struct tile *look = get_relative(g, x_and_y, x, y);
+		if (!look) {
+			set_error(self, FBLOCKED);
+			break;
+		}
+		if (look->animal)
+			*dest = look->animal->brain->signature;
+		else
+			set_error(self, FNO_RESOURCE);
+	} break;
+	case OP_BABY: {} break;
+	default:
+		break;
+	}
 }
 
 #define INSTR2(opcode, l_fmt, left, r_fmt, right) {OP_##opcode, l_fmt, r_fmt, left, right}

@@ -6,6 +6,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+struct animal;
+void animal_step(struct animal *self);
+
+struct grid;
+void animal_act(struct animal *self, struct grid *grid, size_t x, size_t y);
 
 enum opcode {
 /* General */
@@ -37,7 +42,7 @@ enum opcode {
 	OP_PICK,	/* direction num:8,id:8 */
 	OP_DROP,	/* direction num:8,id:8 */
 	OP_LCHM,	/* dest id:6,x:5,y:5 */
-	OP_LNML,	/* dest x:8,y:8 */
+	OP_LNML,	/* dest _:6,x:5,y:5 */
 	OP_BABY,	/* direction */
 	OP_CONV,	/* id1 id2 */
 	OP_EAT,		/* id num */
@@ -56,6 +61,7 @@ struct instruction {
 };
 struct brain {
 	size_t refcount;
+	uint16_t signature;
 	uint16_t ram_size, code_size;
 	struct instruction code[];
 };
@@ -71,6 +77,8 @@ enum flags {
 	FCOOB = 1 << 7,
 	FINVAL_OPCODE = 1 << 8,
 	FNO_RESOURCE = 1 << 9,
+	FFULL = 1 << 10,
+	FBLOCKED = 1 << 11,
 };
 
 struct animal {
