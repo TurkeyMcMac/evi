@@ -78,7 +78,7 @@ enum flags {
 	FROOB = 1 << 6,
 	FCOOB = 1 << 7,
 	FINVAL_OPCODE = 1 << 8,
-	FNO_RESOURCE = 1 << 9,
+	FEMPTY = 1 << 9,
 	FFULL = 1 << 10,
 	FBLOCKED = 1 << 11,
 };

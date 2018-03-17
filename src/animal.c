@@ -47,7 +47,7 @@ const struct opcode_info op_info[N_OPCODES] = {
 
 #define bits_on(bitset, bits) ((bitset) |= (bits))
 #define bits_off(bitset, bits) ((bitset) &= ~(bits))
-#define FERRORS (FINVAL_ARG | FROOB | FCOOB | FINVAL_OPCODE | FNO_RESOURCE | FFULL | FBLOCKED)
+#define FERRORS (FINVAL_ARG | FROOB | FCOOB | FINVAL_OPCODE | FEMPTY | FFULL | FBLOCKED)
 
 static void sub_saturate(uint16_t *dest, uint16_t src)
 {
@@ -287,7 +287,7 @@ void animal_step(struct animal *self)
 			--self->stomach[c2];
 			++self->stomach[combine_chemicals(c1, c2)];
 		} else {
-			set_error(self, FNO_RESOURCE);
+			set_error(self, FEMPTY);
 			goto error;
 		}
 	} break;
@@ -302,7 +302,7 @@ void animal_step(struct animal *self)
 		}
 		amount &= UINT8_MAX;
 		if (amount > self->stomach[chem]) {
-			set_error(self, FNO_RESOURCE);
+			set_error(self, FEMPTY);
 			goto error;
 		} else {
 			self->stomach[chem] -= amount;
@@ -387,7 +387,7 @@ static void transfer(struct animal *a,
 	}
 	bits_off(a->flags, FERRORS);
 	if (src[id] < num) {
-		bits_on(a->flags, FNO_RESOURCE);
+		bits_on(a->flags, FEMPTY);
 		num = src[id];
 	}
 	if ((unsigned)dest[id] + (unsigned)num > UINT8_MAX) {
@@ -477,7 +477,7 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 		if (look->animal)
 			*dest = look->animal->brain->signature;
 		else
-			set_error(self, FNO_RESOURCE);
+			set_error(self, FEMPTY);
 	} break;
 	case OP_BABY: {} break;
 	case OP_STEP: {
@@ -502,7 +502,7 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 			break;
 		}
 		if (!targ->animal) {
-			set_error(self, FNO_RESOURCE);
+			set_error(self, FEMPTY);
 			break;
 		}
 		sub_saturate(&self->energy, power / 2);
