@@ -490,7 +490,9 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 		else
 			set_error(self, FEMPTY);
 	} break;
-	case OP_BABY: {} break;
+	case OP_BABY: {
+		/* TODO: implemnt this */
+	} break;
 	case OP_STEP: {
 		uint16_t direction;
 		if (read_from(self, self->action.l_fmt, self->action.left, &direction))
