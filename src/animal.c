@@ -371,8 +371,10 @@ static struct tile *in_direction(struct grid *g, uint16_t direction, size_t x, s
 	case DIRECTION_LEFT:
 		--x;
 		break;
-	default:
+	case DIRECTION_HERE:
 		break;
+	default:
+		return (void *)-1;
 	}
 	return grid_get(g, x, y);
 }
@@ -427,6 +429,10 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 		 || read_from(self, self->action.r_fmt, self->action.right, &num_and_id))
 			break;
 		struct tile *targ = in_direction(g, direction, x, y);
+		if ((ptrdiff_t)targ == -1) {
+			set_error(self, FINVAL_ARG);
+			break;
+		}
 		if (!targ) {
 			set_error(self, FBLOCKED);
 			break;
@@ -441,6 +447,10 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 		 || read_from(self, self->action.r_fmt, self->action.right, &num_and_id))
 			break;
 		struct tile *targ = in_direction(g, direction, x, y);
+		if ((ptrdiff_t)targ == -1) {
+			set_error(self, FINVAL_ARG);
+			break;
+		}
 		if (!targ) {
 			set_error(self, FBLOCKED);
 			break;
@@ -487,6 +497,10 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 		if (read_from(self, self->action.l_fmt, self->action.left, &direction))
 			break;
 		struct tile *dest = in_direction(g, direction, x, y);
+		if ((ptrdiff_t)dest == -1) {
+			set_error(self, FINVAL_ARG);
+			break;
+		}
 		if (!dest->animal) {
 			dest->animal = self;
 			grid_get_unck(g, x, y)->animal = NULL;
@@ -499,6 +513,10 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 		 || read_from(self, self->action.r_fmt, self->action.right, &power))
 			break;
 		struct tile *targ = in_direction(g, direction, x, y);
+		if ((ptrdiff_t)targ == -1) {
+			set_error(self, FINVAL_ARG);
+			break;
+		}
 		if (!targ) {
 			set_error(self, FBLOCKED);
 			break;
