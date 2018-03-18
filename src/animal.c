@@ -530,6 +530,7 @@ struct brain *brain_new(uint16_t signature, uint16_t ram_size, uint16_t code_siz
 struct animal *animal_new(struct brain *brain, uint16_t health, uint16_t energy, uint16_t lifetime)
 {
 	struct animal *self = malloc(sizeof(struct animal) + brain->ram_size * sizeof(uint16_t));
+	++brain->refcount;
 	self->next = NULL;
 	self->brain = brain;
 	self->health = health;
