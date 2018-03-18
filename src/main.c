@@ -32,5 +32,5 @@ int main(void)
 	while (i--) {
 		grid_update(g);
 	}
-	free(g);
+	grid_free(g);
 }

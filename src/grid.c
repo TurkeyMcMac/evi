@@ -90,3 +90,20 @@ void grid_update(struct grid *self)
 			free(b);
 		}
 }
+
+void grid_free(struct grid *self)
+{
+	struct animal *a = self->animals;
+	while (a != NULL) {
+		struct animal *next = a->next;
+		free(a);
+		a = next;
+	}
+	struct brain *b = self->species;
+	while (b != NULL) {
+		struct brain *next = b->next;
+		free(b);
+		b = next;
+	}
+	free(self);
+}

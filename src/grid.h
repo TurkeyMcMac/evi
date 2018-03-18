@@ -33,4 +33,6 @@ void grid_draw(const struct grid *self, FILE *dest);
 
 void grid_update(struct grid *self);
 
+void grid_free(struct grid *self);
+
 #endif /* Header guard */
