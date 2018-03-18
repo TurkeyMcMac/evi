@@ -41,7 +41,7 @@ struct animal *animal_new(struct brain *brain, uint16_t health, uint16_t energy,
 
 void animal_step(struct animal *self);
 
-bool animal_is_dead(struct animal *self);
+bool animal_die(struct animal *self);
 
 void animal_free(struct animal *self);
 

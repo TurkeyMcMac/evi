@@ -566,7 +566,7 @@ struct animal *animal_new(struct brain *brain, uint16_t health, uint16_t energy,
 	return self;
 }
 
-bool animal_is_dead(struct animal *self)
+bool animal_die(struct animal *self)
 {
 	if (self->lifetime-- == 0 || self->energy == 0 || self->health == 0) {
 		self->health = 0;

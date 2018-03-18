@@ -66,7 +66,7 @@ void grid_update(struct grid *self)
 {
 	struct animal *a, **last_a;
 	SLLIST_FOR_EACH (self->animals, a, last_a)
-		if (animal_is_dead(a))
+		if (animal_die(a))
 			*last_a = a->next;
 		else
 			animal_step(a);
