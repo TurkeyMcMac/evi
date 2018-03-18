@@ -2,6 +2,8 @@
 
 #include "grid.h"
 #include <limits.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define OP_INFO(name, chem, energy) [OP_##name] = {#name, CHEM_M##chem, energy}
 
@@ -511,6 +513,45 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 	default:
 		break;
 	}
+}
+
+struct brain *brain_new(uint16_t signature, uint16_t ram_size, uint16_t code_size)
+{
+	struct brain *self = malloc(sizeof(struct brain) + code_size * sizeof(struct instruction));
+	self->next = NULL;
+	self->refcount = 0;
+	self->signature = signature;
+	self->ram_size = ram_size;
+	self->code_size = code_size;
+	memset(self->code, -1, code_size * sizeof(struct instruction));
+	return self;
+}
+
+struct animal *animal_new(struct brain *brain, uint16_t health, uint16_t energy, uint16_t lifetime)
+{
+	struct animal *self = malloc(sizeof(struct animal) + brain->ram_size * sizeof(uint16_t));
+	self->next = NULL;
+	self->brain = brain;
+	self->health = health;
+	self->energy = energy;
+	self->lifetime = lifetime;
+	self->instr_ptr = 0;
+	self->flags = 0;
+	self->action.opcode = -1;
+	memset(self->stomach, 0, N_CHEMICALS);
+	memset(self->ram, 0, brain->ram_size * sizeof(uint16_t));
+	return self;
+}
+
+bool animal_is_dead(struct animal *self)
+{
+	return self->lifetime-- == 0 || self->energy == 0 || self->health == 0;
+}
+
+void animal_free(struct animal *self)
+{
+	--self->brain->refcount;
+	free(self);
 }
 
 #define INSTR2(opcode, l_fmt, left, r_fmt, right) {OP_##opcode, l_fmt, r_fmt, left, right}

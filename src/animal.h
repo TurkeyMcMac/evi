@@ -3,11 +3,47 @@
 #define _ANIMAL_H
 
 #include "chemicals.h"
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-struct animal;
+struct instruction {
+	uint8_t opcode;
+	uint8_t l_fmt : 2,
+		r_fmt : 2;
+	uint16_t left, right;
+};
+
+struct brain {
+	struct brain *next;
+	size_t refcount;
+	uint16_t signature;
+	uint16_t ram_size, code_size;
+	struct instruction code[];
+};
+
+struct brain *brain_new(uint16_t signature, uint16_t ram_size, uint16_t code_size);
+
+struct animal {
+	struct animal *next;
+	struct brain *brain;
+	uint16_t health;
+	uint16_t energy;
+	uint16_t lifetime;
+	uint16_t instr_ptr;
+	uint16_t flags;
+	struct instruction action;
+	uint8_t stomach[N_CHEMICALS];
+	uint16_t ram[];
+};
+
+struct animal *animal_new(struct brain *brain, uint16_t health, uint16_t energy, uint16_t lifetime);
+
 void animal_step(struct animal *self);
+
+bool animal_is_dead(struct animal *self);
+
+void animal_free(struct animal *self);
 
 struct grid;
 void animal_act(struct animal *self, struct grid *grid, size_t x, size_t y);
@@ -55,19 +91,6 @@ enum opcode {
 	N_OPCODES
 };
 
-struct instruction {
-	uint8_t opcode;
-	uint8_t l_fmt : 2,
-		r_fmt : 2;
-	uint16_t left, right;
-};
-struct brain {
-	size_t refcount;
-	uint16_t signature;
-	uint16_t ram_size, code_size;
-	struct instruction code[];
-};
-
 enum flags {
 	FEQUAL = 1 << 0,
 	FUGREATER = 1 << 1,
@@ -82,22 +105,6 @@ enum flags {
 	FFULL = 1 << 10,
 	FBLOCKED = 1 << 11,
 };
-
-struct animal {
-	struct animal *next;
-	struct brain *brain;
-	size_t x, y;
-	uint16_t health;
-	uint16_t energy;
-	uint16_t lifetime;
-	uint16_t instr_ptr;
-	uint16_t flags;
-	struct instruction action;
-	uint8_t stomach[N_CHEMICALS];
-	uint16_t ram[];
-};
-
-void test_asm(void);
 
 extern const struct opcode_info {
 	char name[5];
