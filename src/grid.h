@@ -13,6 +13,8 @@ struct tile {
 };
 
 struct grid {
+	struct brain *species;
+	struct animal *animals;
 	size_t width, height;
 	struct tile tiles[];
 };
@@ -28,5 +30,7 @@ const struct tile *grid_get_const_unck(const struct grid *self, size_t x, size_t
 const struct tile *grid_get_const(const struct grid *self, size_t x, size_t y);
 
 void grid_draw(const struct grid *self, FILE *dest);
+
+void grid_update(struct grid *self);
 
 #endif /* Header guard */

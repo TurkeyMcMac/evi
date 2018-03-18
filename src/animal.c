@@ -187,7 +187,6 @@ void animal_step(struct animal *self)
 		set_error(self, FINVAL_OPCODE);
 		goto error;
 	}
-	self->action.opcode = 0;
 	switch (instr->opcode) {
 /* General */
 	case OP_MOVE: {
@@ -374,7 +373,7 @@ static struct tile *in_direction(struct grid *g, uint16_t direction, size_t x, s
 	case DIRECTION_HERE:
 		break;
 	default:
-		return (void *)-1;
+		return (void *)(ptrdiff_t)-1;
 	}
 	return grid_get(g, x, y);
 }
@@ -501,6 +500,10 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 			set_error(self, FINVAL_ARG);
 			break;
 		}
+		if (!dest) {
+			set_error(self, FBLOCKED);
+			break;
+		}
 		if (!dest->animal) {
 			dest->animal = self;
 			grid_get_unck(g, x, y)->animal = NULL;
@@ -531,6 +534,7 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 	default:
 		break;
 	}
+	self->action.opcode = -1;
 }
 
 struct brain *brain_new(uint16_t signature, uint16_t ram_size, uint16_t code_size)
@@ -564,7 +568,11 @@ struct animal *animal_new(struct brain *brain, uint16_t health, uint16_t energy,
 
 bool animal_is_dead(struct animal *self)
 {
-	return self->lifetime-- == 0 || self->energy == 0 || self->health == 0;
+	if (self->lifetime-- == 0 || self->energy == 0 || self->health == 0) {
+		self->health = 0;
+		return true;
+	} else
+		return false;
 }
 
 void animal_free(struct animal *self)
