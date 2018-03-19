@@ -89,10 +89,17 @@ static void step_animals(struct grid *g)
 			animal_step(a);
 }
 
-static void init_fluid_mask(struct grid *g)
+static void init_flow_mask(struct grid *g)
 {
 	for (size_t i = 0; i < N_CHEMICALS; ++i) {
 		g->flowing |= (g->tick % chemical_table[i].flow == 0) << i;
+	}
+}
+
+static void init_evaporation_mask(struct grid *g)
+{
+	for (size_t i = 0; i < N_CHEMICALS; ++i) {
+		g->evaporating |= (g->tick % chemical_table[i].evaporation == 0) << i;
 	}
 }
 
@@ -126,9 +133,20 @@ static void flow_fluids(struct grid *g, struct tile *t, size_t x, size_t y)
 	}
 }
 
+static void evaporate_fluids(uint16_t evaporating, struct tile *t)
+{
+	uint16_t idx;
+	for (; evaporating != 0; evaporating &= evaporating - 1) {
+		idx = __builtin_ctz(evaporating);
+		if (t->chemicals[idx] > 0)
+			--t->chemicals[idx];
+	}
+}
+
 static void update_tiles(struct grid *g)
 {
-	init_fluid_mask(g);
+	init_flow_mask(g);
+	init_evaporation_mask(g);
 	size_t x, y;
 	for (y = 0; y < g->height; ++y)
 		for (x = 0; x < g->width; ++x) {
@@ -142,8 +160,10 @@ static void update_tiles(struct grid *g)
 				}
 			}
 			flow_fluids(g, t, x, y);
+			evaporate_fluids(g->evaporating, t);
 		}
 	g->flowing = 0;
+	g->evaporating = 0;
 }
 
 static void free_extinct(struct grid *g)

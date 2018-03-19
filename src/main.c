@@ -34,8 +34,12 @@ int main(void)
 	a1->ram[0] = 2;
 	while (true) {
 		grid_draw(g, stdout);
-		usleep(100000);
 		grid_update(g);
+		if (rspring->chemicals[CHEM_BLUE] < UINT8_MAX)
+			++rspring->chemicals[CHEM_BLUE];
+		if (gspring->chemicals[CHEM_GREEN] < UINT8_MAX)
+			++gspring->chemicals[CHEM_GREEN];
+		usleep(100000);
 	}
 	grid_free(g);
 }
