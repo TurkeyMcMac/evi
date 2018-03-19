@@ -20,16 +20,21 @@ int main(void)
 	struct grid *g = grid_new(21, 21);
 	struct brain *b = brain_new(0xdead, 128, 128);
 	memcpy(b->code, code, sizeof(code));
-	struct animal *a = animal_new(b, 100, 100, 100);
-	struct animal *a1 = animal_new(b, 10000, 10000, 100);
+	struct animal *a = animal_new(b, 10000, 10000, 10000);
+	struct animal *a1 = animal_new(b, 10000, 10000, 10000);
 	g->species = b;
 	g->animals = a;
 	a->next = a1;
 	grid_get(g, 0, 20)->animal = a;
 	grid_get(g, 0,  0)->animal = a1;
+	struct tile *rspring = grid_get(g, 0, 0),
+		    *gspring = grid_get(g, 7, 6);
+	rspring->chemicals[CHEM_BLUE ] = 255;
+	gspring->chemicals[CHEM_GREEN] = 255;
 	a1->ram[0] = 2;
-	int i = 9000;
-	while (i--) {
+	while (true) {
+		grid_draw(g, stdout);
+		usleep(100000);
 		grid_update(g);
 	}
 	grid_free(g);

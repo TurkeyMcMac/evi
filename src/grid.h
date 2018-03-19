@@ -15,6 +15,8 @@ struct tile {
 struct grid {
 	struct brain *species;
 	struct animal *animals;
+	uint16_t tick;
+	uint16_t flowing;
 	size_t width, height;
 	struct tile tiles[];
 };
