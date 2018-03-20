@@ -101,7 +101,6 @@ static uint16_t init_flow_mask(uint16_t tick)
 	for (size_t i = 0; i < N_CHEMICALS; ++i) {
 		flowing |= (tick % chemical_table[i].flow == 0) << i;
 	}
-	printf("flowing: %08o\n", flowing);
 	return flowing;
 }
 
