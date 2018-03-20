@@ -27,18 +27,16 @@ int main(void)
 	a->next = a1;
 	grid_get(g, 0, 20)->animal = a;
 	grid_get(g, 0,  0)->animal = a1;
-	struct tile *rspring = grid_get(g, 0, 0),
-		    *gspring = grid_get(g, 7, 6);
-	rspring->chemicals[CHEM_BLUE ] = 255;
-	gspring->chemicals[CHEM_GREEN] = 255;
+	struct tile *rspring = grid_get(g, 7, 2),
+		    *gspring = grid_get(g, 8, 5),
+		    *bspring = grid_get(g, 7, 6);
 	a1->ram[0] = 2;
 	while (true) {
 		grid_draw(g, stdout);
 		grid_update(g);
-		if (rspring->chemicals[CHEM_BLUE] < UINT8_MAX)
-			++rspring->chemicals[CHEM_BLUE];
-		if (gspring->chemicals[CHEM_GREEN] < UINT8_MAX)
-			++gspring->chemicals[CHEM_GREEN];
+		rspring->chemicals[CHEM_BLUE] = UINT8_MAX;
+		bspring->chemicals[CHEM_RED] = UINT8_MAX;
+		gspring->chemicals[CHEM_GREEN] = UINT8_MAX;
 		usleep(100000);
 	}
 	grid_free(g);

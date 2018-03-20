@@ -45,17 +45,23 @@ static void print_color(const struct tile *t, FILE *dest)
 	    b = t->chemicals[CHEM_BLUE ];
 	if (r) {
 		r /= 51;
-		r *= 18;
-		r += 72;
+		if (r > 4)
+			r = 4;
+		r *= 36;
+		r += 36;
 	}
 	if (g) {
 		g /= 51;
-		g *= 3;
-		g += 12;
+		if (g > 4)
+			g = 4;
+		g *= 6;
+		g += 6;
 	}
 	if (b) {
-		b /= 102;
-		b += 2;
+		b /= 51;
+		if (b > 4)
+			b = 4;
+		b += 1;
 	}
 	fprintf(dest, "\x1B[48;5;%dm", r + g + b + 16);
 }
