@@ -2,20 +2,20 @@
 
 const struct chemical_info chemical_table[N_CHEMICALS] = {
 /*	 Name      Energy  Health  Evaporation  Flow */
-	{"sludge",      0,      0,         128,    1},
-	{"red"   ,      2,      0,          94,    2},
-	{"green" ,      2,      0,          95,    3},
-	{"blue"  ,      2,      0,          96,    4},
-	{"yellow",      2,      0,          80,    2},
-	{"cyan"  ,      2,      0,          98,    3},
-	{"purple",      2,      0,          92,    4},
-	{"mgenrl",      0,      0,         116,    2},
-	{"mbit"  ,      0,      0,         120,    3},
-	{"marith",      0,      0,         119,    4},
-	{"mcntrl",      0,      0,         118,    2},
-	{"mspec" ,      0,      0,         117,    3},
-	{"energy",     32,      0,         159,    7},
-	{"health",      0,      2,         160,    7},
+	{"sludge",      0,      0,         128,    5},
+	{"red"   ,      2,      0,          99,    6},
+	{"green" ,      2,      0,          98,    7},
+	{"blue"  ,      2,      0,          97,    6},
+	{"yellow",      2,      0,          98,    8},
+	{"cyan"  ,      2,      0,          99,    9},
+	{"purple",      2,      0,         101,   10},
+	{"mgenrl",      0,      0,         102,    9},
+	{"mbit"  ,      0,      0,         103,    8},
+	{"marith",      0,      0,         102,    5},
+	{"mcntrl",      0,      0,         101,    6},
+	{"mspec" ,      0,      0,         117,    7},
+	{"energy",     32,      0,         159,   11},
+	{"health",      0,      2,         160,   11},
 };
 
 #define chemicals_id(c1, c2) ((1 << (c1)) | (1 << (c2)))
