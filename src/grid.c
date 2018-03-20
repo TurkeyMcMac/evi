@@ -118,7 +118,7 @@ static void flow_fluids(uint16_t flowing, struct grid *g, struct tile *t, size_t
 	uint16_t idx;
 	for (; flowing != 0; flowing &= flowing - 1) {
 		idx = __builtin_ctz(flowing);
-		if (t->chemicals[idx] >= 4) {
+		if (t->chemicals[idx] > 4) {
 			struct tile *flow_to;
 			if ((flow_to = grid_get(g, x, y - 1)) != NULL
 			 && flow_to->chemicals[idx] != UINT8_MAX) {
