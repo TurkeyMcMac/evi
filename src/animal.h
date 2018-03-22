@@ -79,7 +79,7 @@ enum opcode {
 	OP_DROP,	/* direction num:8,id:8 */
 	OP_LCHM,	/* dest id:6,x:5,y:5 */
 	OP_LNML,	/* dest _:6,x:5,y:5 */
-	OP_BABY,	/* direction */
+	OP_BABY,	/* direction energy */
 	OP_STEP,	/* direction */
 	OP_ATTK,	/* direction power */
 	OP_CONV,	/* id1 id2 */
@@ -108,7 +108,6 @@ enum flags {
 
 extern const struct opcode_info {
 	char name[5];
-	uint8_t chem;
 	uint16_t energy;
 } op_info[N_OPCODES];
 

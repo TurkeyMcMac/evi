@@ -1,7 +1,7 @@
 #include "grid.h"
 #include <stdlib.h>
 
-struct grid *grid_new(size_t width, size_t height)
+struct grid *grid_new(size_t width, size_t height, uint16_t health, uint16_t lifetime)
 {
 	struct grid *self = calloc(1, sizeof(struct grid) + width * height * sizeof(struct tile));
 	self->species = NULL;
@@ -9,6 +9,8 @@ struct grid *grid_new(size_t width, size_t height)
 	self->tick = 0;
 	self->width = width;
 	self->height = height;
+	self->health = health;
+	self->lifetime = lifetime;
 	return self;
 }
 
@@ -40,9 +42,9 @@ const struct tile *grid_get_const(const struct grid *self, size_t x, size_t y)
 
 static void print_color(const struct tile *t, FILE *dest)
 {
-	int r = t->chemicals[CHEM_RED  ],
-	    g = t->chemicals[CHEM_GREEN],
-	    b = t->chemicals[CHEM_BLUE ];
+	int r = t->chemicals[CHEM_ENERGY],
+	    g = t->chemicals[CHEM_CODEA],
+	    b = t->chemicals[CHEM_CODEB];
 	if (r) {
 		r /= 51;
 		if (r > 4)

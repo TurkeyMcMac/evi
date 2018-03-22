@@ -16,11 +16,12 @@ struct grid {
 	struct brain *species;
 	struct animal *animals;
 	uint16_t tick;
+	uint16_t health, lifetime;
 	size_t width, height;
 	struct tile tiles[];
 };
 
-struct grid *grid_new(size_t width, size_t height);
+struct grid *grid_new(size_t width, size_t height, uint16_t health, uint16_t lifetime);
 
 struct tile *grid_get_unck(struct grid *self, size_t x, size_t y);
 

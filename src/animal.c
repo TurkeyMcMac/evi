@@ -5,46 +5,45 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define OP_INFO(name, chem, energy) [OP_##name] = {#name, CHEM_M##chem, energy}
+#define OP_INFO(name, energy) [OP_##name] = {#name, energy}
 
 #define GNRG_COST 1
 
 const struct opcode_info op_info[N_OPCODES] = {
-	/*	Name	Chem	Energy */
-	OP_INFO(MOVE,	GENRL,	     1),
-	OP_INFO(XCHG,	GENRL,	     2),
-	OP_INFO(GFLG,	GENRL,	     1),
-	OP_INFO(SFLG,	GENRL,	     1),
-	OP_INFO(GIPT,	GENRL,	     1),
-	OP_INFO(AND,	BIT,	     4),
-	OP_INFO(OR,	BIT,	     4),
-	OP_INFO(XOR,	BIT,	     4),
-	OP_INFO(NOT,	BIT,	     3),
-	OP_INFO(SHFR,	BIT,	     4),
-	OP_INFO(SHFL,	BIT,	     4),
-	OP_INFO(ADD,	ARITH,	     6),
-	OP_INFO(SUB,	ARITH,	     6),
-	OP_INFO(INCR,	ARITH,	     4),
-	OP_INFO(DECR,	ARITH,	     4),
-	OP_INFO(JUMP,	CNTRL,	     4),
-	OP_INFO(CMPR,	CNTRL,	     6),
-	OP_INFO(JMPA,	CNTRL,	     6),
-	OP_INFO(JPNA,	CNTRL,	     6),
-	OP_INFO(JMPO,	CNTRL,	     6),
-	OP_INFO(JPNO,	CNTRL,	     6),
-	OP_INFO(PICK,	SPEC,	     8),
-	OP_INFO(DROP,	SPEC,	     7),
-	OP_INFO(LCHM,	SPEC,	     7),
-	OP_INFO(LNML,	SPEC,	     7),
-	OP_INFO(BABY,	SPEC,	     5),
-	OP_INFO(BABY,	SPEC,	     5),
-	OP_INFO(STEP,	SPEC,	     7),
-	OP_INFO(ATTK,	SPEC,	     7),
-	OP_INFO(CONV,	SPEC,	    10),
-	OP_INFO(EAT,	SPEC,	     2),
-	OP_INFO(GCHM,	SPEC,	     2),
-	OP_INFO(GHLT,	SPEC,	     1),
-	OP_INFO(GNRG,	SPEC,	GNRG_COST),
+	/*	Name	Energy */
+	OP_INFO(MOVE,	     1),
+	OP_INFO(XCHG,	     2),
+	OP_INFO(GFLG,	     1),
+	OP_INFO(SFLG,	     1),
+	OP_INFO(GIPT,	     1),
+	OP_INFO(AND,	     4),
+	OP_INFO(OR,	     4),
+	OP_INFO(XOR,	     4),
+	OP_INFO(NOT,	     3),
+	OP_INFO(SHFR,	     4),
+	OP_INFO(SHFL,	     4),
+	OP_INFO(ADD,	     6),
+	OP_INFO(SUB,	     6),
+	OP_INFO(INCR,	     4),
+	OP_INFO(DECR,	     4),
+	OP_INFO(JUMP,	     4),
+	OP_INFO(CMPR,	     6),
+	OP_INFO(JMPA,	     6),
+	OP_INFO(JPNA,	     6),
+	OP_INFO(JMPO,	     6),
+	OP_INFO(JPNO,	     6),
+	OP_INFO(PICK,	     8),
+	OP_INFO(DROP,	     7),
+	OP_INFO(LCHM,	     7),
+	OP_INFO(LNML,	     7),
+	OP_INFO(BABY,	     5),
+	OP_INFO(STEP,	     7),
+	OP_INFO(ATTK,	     7),
+	OP_INFO(CONV,	    10),
+	OP_INFO(EAT,	     2),
+	OP_INFO(GCHM,	     2),
+	OP_INFO(GHLT,	     1),
+	OP_INFO(GNRG,GNRG_COST),
 };
 
 #define bits_on(bitset, bits) ((bitset) |= (bits))
@@ -491,7 +490,31 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 			set_error(self, FEMPTY);
 	} break;
 	case OP_BABY: {
-		/* TODO: implemnt this */
+		uint16_t direction, energy;
+		if (read_from(self, self->action.l_fmt, self->action.left, &direction)
+		 || read_from(self, self->action.r_fmt, self->action.right, &energy))
+			break;
+		struct tile *targ = in_direction(g, direction, x, y);
+		if (!targ) {
+			set_error(self, FBLOCKED);
+			break;
+		}
+		add_saturate(&energy, self->brain->ram_size);
+		uint8_t codea = self->brain->code_size >> 3,
+			codeb = self->brain->code_size >> 11;
+		if (energy >= self->energy
+		 || codea > self->stomach[CHEM_CODEA]
+		 || codeb > self->stomach[CHEM_CODEB]) {
+			set_error(self, FEMPTY);
+			break;
+		}
+		self->energy -= energy;
+		self->stomach[CHEM_CODEA] -= codea;
+		self->stomach[CHEM_CODEB] -= codeb;
+		targ->animal = animal_new(self->brain,
+				g->health,
+				energy - self->brain->ram_size,
+				g->lifetime);
 	} break;
 	case OP_STEP: {
 		uint16_t direction;
