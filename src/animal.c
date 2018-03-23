@@ -39,7 +39,7 @@ const struct opcode_info op_info[N_OPCODES] = {
 	OP_INFO(BABY,	     5),
 	OP_INFO(STEP,	     7),
 	OP_INFO(ATTK,	     7),
-	OP_INFO(CONV,	    10),
+	OP_INFO(CONV,	     6),
 	OP_INFO(EAT,	     2),
 	OP_INFO(GCHM,	     2),
 	OP_INFO(GHLT,	     1),
