@@ -10,6 +10,7 @@
 struct tile {
 	struct animal *animal;
 	uint8_t chemicals[N_CHEMICALS];
+	uint8_t spring;
 };
 
 struct grid {
@@ -34,6 +35,11 @@ const struct tile *grid_get_const(const struct grid *self, size_t x, size_t y);
 void grid_draw(const struct grid *self, FILE *dest);
 
 void grid_update(struct grid *self);
+
+void grid_random_springs(struct grid *self,
+		size_t n_chems,
+		const enum chemical chems[],
+		size_t n_springs);
 
 void grid_free(struct grid *self);
 

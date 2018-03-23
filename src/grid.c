@@ -42,9 +42,9 @@ const struct tile *grid_get_const(const struct grid *self, size_t x, size_t y)
 
 static void print_color(const struct tile *t, FILE *dest)
 {
-	int r = t->chemicals[CHEM_ENERGY],
-	    g = t->chemicals[CHEM_CODEA],
-	    b = t->chemicals[CHEM_CODEB];
+	int r = t->chemicals[CHEM_RED],
+	    g = t->chemicals[CHEM_GREEN],
+	    b = t->chemicals[CHEM_BLUE];
 	if (r) {
 		r /= 51;
 		if (r > 4)
@@ -115,11 +115,16 @@ static uint16_t init_evaporation_mask(uint16_t tick)
 	return evaporating;
 }
 
+#define HAS_SPRING (1 << 7)
+
 static void flow_fluids(uint16_t flowing, struct grid *g, struct tile *t, size_t x, size_t y)
 {
 	uint16_t idx;
 	for (; flowing != 0; flowing &= flowing - 1) {
 		idx = __builtin_ctz(flowing);
+		if (t->spring & HAS_SPRING) {
+			t->chemicals[t->spring & ~HAS_SPRING] = UINT8_MAX;
+		}
 		if (t->chemicals[idx] > 4) {
 			struct tile *flow_to;
 			if ((flow_to = grid_get(g, x, y - 1)) != NULL
@@ -210,4 +215,17 @@ void grid_free(struct grid *self)
 		b = next;
 	}
 	free(self);
+}
+
+void grid_random_springs(struct grid *self,
+		size_t n_chems,
+		const enum chemical chems[],
+		size_t n_springs)
+{
+	while (n_springs--) {
+		size_t x = rand() % self->width,
+		       y = rand() % self->height;
+		printf("(%lu, %lu)\n", x, y);
+		grid_get_unck(self, x, y)->spring = HAS_SPRING | chems[rand() % n_chems];
+	}
 }

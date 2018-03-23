@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 
 #define DIRECT 0x0000
 #define NOSE 0x0001
@@ -20,9 +21,13 @@ static const struct instruction code[] = {
 	[0x0006] = {OP_JUMP, 0,0, 0x0000},
 };
 
+static const enum chemical spring_colors[] = {CHEM_RED, CHEM_GREEN, CHEM_BLUE};
+
 int main(void)
 {
-	struct grid *g = grid_new(21, 21, 50, 5000);
+	srand(time(NULL));
+	struct grid *g = grid_new(50, 50, 50, 5000);
+	grid_random_springs(g, 3, spring_colors, 40);
 	struct brain *b = brain_new(0xdead, 5, sizeof(code));
 	memcpy(b->code, code, sizeof(code));
 	struct animal *a = animal_new(b, 50, 1000, 5000);
@@ -32,17 +37,12 @@ int main(void)
 	a->next = a1;
 	grid_get(g, 0, 20)->animal = a;
 	grid_get(g, 0,  0)->animal = a1;
-	struct tile *rspring = grid_get(g, 0, 0),
-		    *gspring = grid_get(g, 0,20),
-		    *bspring = grid_get(g,20, 0);
 	a1->ram[0] = 2;
 	while (true) {
+		size_t i;
 		grid_draw(g, stdout);
 		grid_update(g);
-		rspring->chemicals[CHEM_ENERGY] = UINT8_MAX;
-		bspring->chemicals[CHEM_ENERGY] = UINT8_MAX;
-		gspring->chemicals[CHEM_ENERGY] = UINT8_MAX;
-		usleep(10000);
+		usleep(20000);
 	}
 	grid_free(g);
 }
