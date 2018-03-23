@@ -32,8 +32,8 @@ extern const struct chemical_info {
  * blue   + red    = purple
  * cyan   + purple = codea
  * yellow + purple = codeb
- * red    + yellow = health
- * green  + cyan   = energy
+ * green  + yellow = health
+ * red    + cyan   = energy
  * default:          sludge
  * */
 enum chemical combine_chemicals(enum chemical c1, enum chemical c2);

@@ -90,11 +90,13 @@ void grid_draw(const struct grid *self, FILE *dest)
 static void step_animals(struct grid *g)
 {
 	struct animal *a, **last_a;
-	SLLIST_FOR_EACH (g->animals, a, last_a)
+	SLLIST_FOR_EACH (g->animals, a, last_a) {
+		printf("energy: %u, lifetime: %u\n", a->energy, a->lifetime);
 		if (animal_die(a))
 			*last_a = a->next;
 		else
 			animal_step(a);
+	}
 }
 
 static uint16_t init_flow_mask(uint16_t tick)

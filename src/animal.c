@@ -303,11 +303,10 @@ void animal_step(struct animal *self)
 		amount &= UINT8_MAX;
 		if (amount > self->stomach[chem]) {
 			set_error(self, FEMPTY);
-			goto error;
-		} else {
-			self->stomach[chem] -= amount;
-			add_saturate(&self->energy, amount * chemical_table[chem].energy);
+			amount = self->stomach[chem];
 		}
+		self->stomach[chem] -= amount;
+		add_saturate(&self->energy, amount * chemical_table[chem].energy);
 	} break;
 	case OP_GCHM: {
 		uint16_t chem, *dest = write_dest(self, instr->l_fmt, instr->left);

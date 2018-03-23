@@ -30,9 +30,9 @@ enum chemical combine_chemicals(enum chemical c1, enum chemical c2)
 		return CHEM_CODEA;
 	case chemicals_id(CHEM_YELLOW, CHEM_PURPLE):
 		return CHEM_CODEB;
-	case chemicals_id(CHEM_GREEN, CHEM_CYAN):
+	case chemicals_id(CHEM_RED, CHEM_CYAN):
 		return CHEM_ENERGY;
-	case chemicals_id(CHEM_RED, CHEM_YELLOW):
+	case chemicals_id(CHEM_GREEN, CHEM_YELLOW):
 		return CHEM_HEALTH;
 	default:
 		return CHEM_SLUDGE;
