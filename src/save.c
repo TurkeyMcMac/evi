@@ -5,11 +5,6 @@
 #include <arpa/inet.h>
 #include <stdio.h>
 
-#if N_CHEMICALS != 11
-	#error "Be sure to change the version number when changing N_CHEMICALS!"
-#endif
-#define SERIALIZATION_VERSION 1
-
 #define FAIL(fn, e) do { *(e) = #fn; return -1; } while (0)
 
 #define FWRITE(src, size, nmemb, dest, e) do { \
