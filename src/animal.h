@@ -35,7 +35,7 @@ struct animal {
 	uint16_t lifetime;
 	uint16_t instr_ptr;
 	uint16_t flags;
-	struct instruction action;
+	uint16_t action;
 	uint8_t stomach[N_CHEMICALS];
 	bool is_dead;
 	uint16_t ram[];

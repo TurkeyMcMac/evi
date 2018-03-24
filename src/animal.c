@@ -271,7 +271,7 @@ void animal_step(struct animal *self)
 	case OP_PICK: case OP_DROP: case OP_LCHM: case OP_LNML: case OP_BABY: case OP_STEP:
 	case OP_ATTK: {
 		/* This is an interaction with the world, so it must be handled externally. */
-		self->action = *instr;
+		self->action = self->instr_ptr;
 	} break;
 	case OP_CONV: {
 		uint16_t c1, c2;
@@ -419,11 +419,14 @@ const struct tile *get_relative(const struct grid *g,
 
 void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 {
-	switch (self->action.opcode) {
+	if (self->action >= self->brain->code_size)
+		return;
+	struct instruction action = self->brain->code[self->action];
+	switch (action.opcode) {
 	case OP_PICK: {
 		uint16_t direction, num_and_id;
-		if (read_from(self, self->action.l_fmt, self->action.left, &direction)
-		 || read_from(self, self->action.r_fmt, self->action.right, &num_and_id))
+		if (read_from(self, action.l_fmt, action.left, &direction)
+		 || read_from(self, action.r_fmt, action.right, &num_and_id))
 			break;
 		struct tile *targ = in_direction(g, direction, x, y);
 		if ((ptrdiff_t)targ == -1) {
@@ -440,8 +443,8 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 	} break;
 	case OP_DROP: {
 		uint16_t direction, num_and_id;
-		if (read_from(self, self->action.l_fmt, self->action.left, &direction)
-		 || read_from(self, self->action.r_fmt, self->action.right, &num_and_id))
+		if (read_from(self, action.l_fmt, action.left, &direction)
+		 || read_from(self, action.r_fmt, action.right, &num_and_id))
 			break;
 		struct tile *targ = in_direction(g, direction, x, y);
 		if ((ptrdiff_t)targ == -1) {
@@ -458,9 +461,9 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 	} break;
 	case OP_LCHM: {
 		uint16_t id_and_x_and_y, *dest =
-			write_dest(self, self->action.l_fmt, self->action.left);
+			write_dest(self, action.l_fmt, action.left);
 		if (!dest
-		 || read_from(self, self->action.r_fmt, self->action.right, &id_and_x_and_y))
+		 || read_from(self, action.r_fmt, action.right, &id_and_x_and_y))
 			break;
 		const struct tile *look = get_relative(g, id_and_x_and_y, x, y);
 		if (!look) {
@@ -475,8 +478,8 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 		*dest = look->chemicals[id];
 	} break;
 	case OP_LNML: {
-		uint16_t x_and_y, *dest = write_dest(self, self->action.l_fmt, self->action.left);
-		if (!dest || read_from(self, self->action.r_fmt, self->action.right, &x_and_y))
+		uint16_t x_and_y, *dest = write_dest(self, action.l_fmt, action.left);
+		if (!dest || read_from(self, action.r_fmt, action.right, &x_and_y))
 			break;
 		const struct tile *look = get_relative(g, x_and_y, x, y);
 		if (!look) {
@@ -490,8 +493,8 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 	} break;
 	case OP_BABY: {
 		uint16_t direction, energy;
-		if (read_from(self, self->action.l_fmt, self->action.left, &direction)
-		 || read_from(self, self->action.r_fmt, self->action.right, &energy))
+		if (read_from(self, action.l_fmt, action.left, &direction)
+		 || read_from(self, action.r_fmt, action.right, &energy))
 			break;
 		struct tile *targ = in_direction(g, direction, x, y);
 		if (!targ) {
@@ -515,7 +518,7 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 	} break;
 	case OP_STEP: {
 		uint16_t direction;
-		if (read_from(self, self->action.l_fmt, self->action.left, &direction))
+		if (read_from(self, action.l_fmt, action.left, &direction))
 			break;
 		struct tile *dest = in_direction(g, direction, x, y);
 		if ((ptrdiff_t)dest == -1) {
@@ -534,8 +537,8 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 	} break;
 	case OP_ATTK: {
 		uint16_t direction, power;
-		if (read_from(self, self->action.l_fmt, self->action.left, &direction)
-		 || read_from(self, self->action.r_fmt, self->action.right, &power))
+		if (read_from(self, action.l_fmt, action.left, &direction)
+		 || read_from(self, action.r_fmt, action.right, &power))
 			break;
 		struct tile *targ = in_direction(g, direction, x, y);
 		if ((ptrdiff_t)targ == -1) {
@@ -556,7 +559,7 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 	default:
 		break;
 	}
-	self->action.opcode = -1;
+	self->action = -1;
 }
 
 struct brain *brain_new(uint16_t signature, uint16_t ram_size, uint16_t code_size)
@@ -579,7 +582,7 @@ struct animal *animal_new(struct brain *brain, uint16_t energy)
 	self->energy = energy;
 	self->instr_ptr = 0;
 	self->flags = 0;
-	self->action.opcode = -1;
+	self->action = -1;
 	memset(self->stomach, 0, N_CHEMICALS);
 	self->is_dead = false;
 	memset(self->ram, 0, brain->ram_size * sizeof(uint16_t));

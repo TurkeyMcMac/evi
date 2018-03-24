@@ -112,13 +112,11 @@ static int write_tile(const struct tile *t, uint32_t animal_off, FILE *dest, con
 static int write_animal(const struct animal *a, FILE *dest, const char **err)
 {
 	FWRITE(&a->brain->save_num, sizeof(a->brain->save_num), 1, dest, err);
-	uint16_t short_fields[5] = {
+	uint16_t short_fields[6] = {
 		htons(a->health), htons(a->energy), htons(a->lifetime),
-		htons(a->instr_ptr), htons(a->flags)
+		htons(a->instr_ptr), htons(a->flags), htons(a->action)
 	};
 	FWRITE(short_fields, sizeof(*short_fields), 5, dest, err);
-	if (write_instruction(&a->action, dest, err))
-		return -1;
 	FWRITE(a->stomach, sizeof(*a->stomach), N_CHEMICALS, dest, err);
 	for (uint16_t i = 0; i < a->brain->ram_size; ++i) {
 		uint16_t cell = htons(a->ram[i]);
@@ -126,22 +124,6 @@ static int write_animal(const struct animal *a, FILE *dest, const char **err)
 	}
 	return 0;
 }
-
-/*
-struct animal {
-	struct animal *next;
-	struct brain *brain;
-	uint16_t health;
-	uint16_t energy;
-	uint16_t lifetime;
-	uint16_t instr_ptr;
-	uint16_t flags;
-	struct instruction action;
-	uint8_t stomach[N_CHEMICALS];
-	bool is_dead;
-	uint16_t ram[];
-};
-*/
 
 /*
 save version number: 4
@@ -167,7 +149,6 @@ height: 4
 (animals) {
 	species number: 4
 	irrelevant data: TBD
-	RAM size: 2
 	RAM: RAM size * 2
 }
 
