@@ -1,6 +1,8 @@
 #include "animal.h"
 #include "chemicals.h"
 #include "grid.h"
+#include "save.h"
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,11 +63,18 @@ int main(void)
 		grid_add_animal(g, a);
 	}
 	g->species = b;
-	while (true) {
+	int i = 1000;
+	while (i--) {
 		grid_draw(g, stdout);
 		printf("\n");
 		usleep(9000);
 		grid_update(g);
 	}
+	FILE *foo = fopen("foo", "wb");
+	const char *err;
+	if (write_grid(g, foo, &err)) {
+		printf("Error: %s: %s\n", err, strerror(errno));
+	}
+	fclose(foo);
 	grid_free(g);
 }

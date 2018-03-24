@@ -88,8 +88,6 @@ void grid_draw(const struct grid *self, FILE *dest)
 	}
 }
 
-#define SLLIST_FOR_EACH(list, item) for ((item) = (list); (item) != NULL; (item) = (item)->next)
-
 static void step_animals(struct grid *g)
 {
 	struct animal *a, **last_a = &g->animals;

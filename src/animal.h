@@ -7,6 +7,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define SLLIST_FOR_EACH(list, item) for ((item) = (list); (item) != NULL; (item) = (item)->next)
+
 struct instruction {
 	uint8_t opcode;
 	uint8_t l_fmt : 2,
@@ -17,6 +19,7 @@ struct instruction {
 struct brain {
 	struct brain *next;
 	size_t refcount;
+	uint32_t save_num;
 	uint16_t signature;
 	uint16_t ram_size, code_size;
 	struct instruction code[];
