@@ -510,10 +510,8 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 		self->energy -= energy;
 		self->stomach[CHEM_CODEA] -= codea;
 		self->stomach[CHEM_CODEB] -= codeb;
-		targ->animal = animal_new(self->brain,
-				g->health,
-				energy - self->brain->ram_size,
-				g->lifetime);
+		targ->animal = animal_new(self->brain, energy - self->brain->ram_size);
+		grid_add_animal(g, targ->animal);
 	} break;
 	case OP_STEP: {
 		uint16_t direction;
@@ -573,30 +571,26 @@ struct brain *brain_new(uint16_t signature, uint16_t ram_size, uint16_t code_siz
 	return self;
 }
 
-struct animal *animal_new(struct brain *brain, uint16_t health, uint16_t energy, uint16_t lifetime)
+struct animal *animal_new(struct brain *brain, uint16_t energy)
 {
 	struct animal *self = malloc(sizeof(struct animal) + brain->ram_size * sizeof(uint16_t));
 	++brain->refcount;
-	self->next = NULL;
 	self->brain = brain;
-	self->health = health;
 	self->energy = energy;
-	self->lifetime = lifetime;
 	self->instr_ptr = 0;
 	self->flags = 0;
 	self->action.opcode = -1;
 	memset(self->stomach, 0, N_CHEMICALS);
+	self->is_dead = false;
 	memset(self->ram, 0, brain->ram_size * sizeof(uint16_t));
 	return self;
 }
 
 bool animal_die(struct animal *self)
 {
-	if (self->lifetime-- == 0 || self->energy == 0 || self->health == 0) {
-		self->health = 0;
-		return true;
-	} else
-		return false;
+	--self->lifetime;
+	self->is_dead = self->lifetime == 0 || (self->energy == 0) || self->health == 0;
+	return self->is_dead;
 }
 
 void animal_free(struct animal *self)

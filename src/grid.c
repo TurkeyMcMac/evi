@@ -1,16 +1,12 @@
 #include "grid.h"
 #include <stdlib.h>
 
-struct grid *grid_new(size_t width, size_t height, uint16_t health, uint16_t lifetime)
+struct grid *grid_new(size_t width, size_t height)
 {
 	struct grid *self = calloc(1, sizeof(struct grid) + width * height * sizeof(struct tile));
-	self->species = NULL;
-	self->animals = NULL;
-	self->tick = 0;
 	self->width = width;
 	self->height = height;
-	self->health = health;
-	self->lifetime = lifetime;
+	self->drop_interval = 1;
 	return self;
 }
 
@@ -25,6 +21,14 @@ struct tile *grid_get(struct grid *self, size_t x, size_t y)
 		return grid_get_unck(self, x, y);
 	else
 		return NULL;
+}
+
+void grid_add_animal(struct grid *self, struct animal *a)
+{
+	a->next = self->animals;
+	self->animals = a;
+	a->lifetime = self->lifetime;
+	a->health = self->health;
 }
 
 const struct tile *grid_get_const_unck(const struct grid *self, size_t x, size_t y)
@@ -76,26 +80,26 @@ void grid_draw(const struct grid *self, FILE *dest)
 			const struct tile *t = grid_get_const_unck(self, x, y);
 			print_color(t, dest);
 			if (t->animal)
-				printf("<>");	
+				fprintf(dest, "<>");	
 			else
-				printf("  ");
+				fprintf(dest, "  ");
 		}
-		printf("\x1B[0m\n");
+		fprintf(dest, "\x1B[0m\n");
 	}
 }
 
-#define SLLIST_FOR_EACH(list, item, last) for ((item) = (list), (last) = &(list); (item) != NULL; \
-		(last) = &(item)->next, (item) = (item)->next)
+#define SLLIST_FOR_EACH(list, item) for ((item) = (list); (item) != NULL; (item) = (item)->next)
 
 static void step_animals(struct grid *g)
 {
-	struct animal *a, **last_a;
-	SLLIST_FOR_EACH (g->animals, a, last_a) {
-		printf("energy: %u, lifetime: %u\n", a->energy, a->lifetime);
-		if (animal_die(a))
+	struct animal *a, **last_a = &g->animals;
+	SLLIST_FOR_EACH (g->animals, a) {
+		if (animal_die(a)) {
 			*last_a = a->next;
-		else
+		} else {
 			animal_step(a);
+			last_a = &a->next;
+		}
 	}
 }
 
@@ -117,16 +121,11 @@ static uint16_t init_evaporation_mask(uint16_t tick)
 	return evaporating;
 }
 
-#define HAS_SPRING (1 << 7)
-
 static void flow_fluids(uint16_t flowing, struct grid *g, struct tile *t, size_t x, size_t y)
 {
 	uint16_t idx;
 	for (; flowing != 0; flowing &= flowing - 1) {
 		idx = __builtin_ctz(flowing);
-		if (t->spring & HAS_SPRING) {
-			t->chemicals[t->spring & ~HAS_SPRING] = UINT8_MAX;
-		}
 		if (t->chemicals[idx] > 4) {
 			struct tile *flow_to;
 			if ((flow_to = grid_get(g, x, y - 1)) != NULL
@@ -172,12 +171,11 @@ static void update_tiles(struct grid *g)
 		for (x = 0; x < g->width; ++x) {
 			struct tile *t = grid_get_unck(g, x, y);
 			if (t->animal) {
-				if (t->animal->health > 0)
-					animal_act(t->animal, g, x, y);
-				else {
+				if (t->animal->is_dead) {
 					animal_free(t->animal);
 					t->animal = NULL;
-				}
+				} else
+					animal_act(t->animal, g, x, y);
 			}
 			flow_fluids(flowing, g, t, x, y);
 			evaporate_fluids(evaporating, t);
@@ -186,12 +184,13 @@ static void update_tiles(struct grid *g)
 
 static void free_extinct(struct grid *g)
 {
-	struct brain *b, **last_b;
-	SLLIST_FOR_EACH (g->species, b, last_b)
+	struct brain *b, **last_b = &g->species;
+	SLLIST_FOR_EACH (g->species, b)
 		if (b->refcount == 0) {
 			*last_b = b->next;
 			free(b);
-		}
+		} else
+			last_b = &b->next;
 }
 
 void grid_update(struct grid *self)
@@ -199,6 +198,10 @@ void grid_update(struct grid *self)
 	step_animals(self);
 	update_tiles(self);
 	free_extinct(self);
+	if (self->tick % self->drop_interval == 0) {
+		grid_get_unck(self, rand() % self->width, rand() % self->height)
+			->chemicals[rand() % 3 + 1] = self->drop_amount;
+	}
 	++self->tick;
 }
 
@@ -217,17 +220,4 @@ void grid_free(struct grid *self)
 		b = next;
 	}
 	free(self);
-}
-
-void grid_random_springs(struct grid *self,
-		size_t n_chems,
-		const enum chemical chems[],
-		size_t n_springs)
-{
-	while (n_springs--) {
-		size_t x = rand() % self->width,
-		       y = rand() % self->height;
-		printf("(%lu, %lu)\n", x, y);
-		grid_get_unck(self, x, y)->spring = HAS_SPRING | chems[rand() % n_chems];
-	}
 }

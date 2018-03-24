@@ -34,10 +34,11 @@ struct animal {
 	uint16_t flags;
 	struct instruction action;
 	uint8_t stomach[N_CHEMICALS];
+	bool is_dead;
 	uint16_t ram[];
 };
 
-struct animal *animal_new(struct brain *brain, uint16_t health, uint16_t energy, uint16_t lifetime);
+struct animal *animal_new(struct brain *brain, uint16_t energy);
 
 void animal_step(struct animal *self);
 

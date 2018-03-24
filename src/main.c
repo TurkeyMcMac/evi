@@ -8,45 +8,64 @@
 #include <unistd.h>
 #include <time.h>
 
-#define DIRECT 0x0000
-#define NOSE 0x0001
+#define DIRECT	0x0000
+#define BABY	0x0001
 
 static const struct instruction code[] = {
-	[0x0000] = {OP_PICK, 1,0, 4, (255 << 8) | CHEM_RED},
-	[0x0001] = {OP_PICK, 1,0, 4, (255 << 8) | CHEM_GREEN},
-	[0x0002] = {OP_PICK, 1,0, 4, (255 << 8) | CHEM_BLUE},
-	[0x0003] = {OP_CONV, 0,0, CHEM_GREEN, CHEM_BLUE}, /* Cyan */
-	[0x0004] = {OP_CONV, 0,0, CHEM_RED, CHEM_CYAN},   /* Energy */
-	[0x0005] = {OP_STEP, 1,0, DIRECT},
-	[0x0006] = {OP_JPNO, 0,0, 0x0000, FBLOCKED},
-	[0x0007] = {OP_ADD,  1,0, DIRECT, 2},
-	[0x0008] = {OP_AND , 1,0, DIRECT, 3},
-	[0x0009] = {OP_EAT,  0,0, CHEM_ENERGY, 255},
-	[0x000A] = {OP_JUMP, 0,0, 0x0000},
+	{OP_GNRG, 1,0, DIRECT},
+
+	{OP_AND,  1,0, DIRECT, 3},
+
+	{OP_PICK, 1,0, 4, (255 << 8) | CHEM_RED},
+	{OP_PICK, 1,0, 4, (255 << 8) | CHEM_GREEN},
+	{OP_PICK, 1,0, 4, (255 << 8) | CHEM_BLUE},
+	{OP_CONV, 0,0, CHEM_GREEN, CHEM_BLUE}, /* Cyan */
+	{OP_CONV, 0,0, CHEM_RED, CHEM_CYAN},   /* Energy */
+	{OP_STEP, 1,0, DIRECT},
+	{OP_JPNO, 0,0, 0x0002, FBLOCKED},
+
+	{OP_EAT,  0,0, CHEM_ENERGY, 255},
+	{OP_CONV, 0,0, CHEM_GREEN, CHEM_BLUE}, /* Cyan */
+	{OP_CONV, 0,0, CHEM_BLUE, CHEM_RED}, /* Purple */
+	{OP_CONV, 0,0, CHEM_CYAN, CHEM_PURPLE}, /* Codea */
+
+	{OP_ADD,  1,0, DIRECT, 2},
+	{OP_MOVE, 1,1, BABY, DIRECT},
+	{OP_OR,   1,0, BABY, 1 << 14},
+	{OP_AND,  1,0, DIRECT, 3},
+	{OP_BABY, 1,1, DIRECT, BABY},
+	{OP_DECR, 1,0, DIRECT},
+
+	{OP_JUMP, 0,0, 0x0001},
 };
 
 static const enum chemical spring_colors[] = {CHEM_RED, CHEM_GREEN, CHEM_BLUE};
 
+#define array_len(arr) (sizeof((arr)) / sizeof(*(arr)))
+
+#define N_ANIMALS 2
+
 int main(void)
 {
 	srand(time(NULL));
-	struct grid *g = grid_new(50, 50, 50, 5000);
-	grid_random_springs(g, 3, spring_colors, 40);
-	struct brain *b = brain_new(0xdead, 5, sizeof(code));
+	struct grid *g = grid_new(50, 50);
+	g->drop_interval = 10;
+	g->drop_amount = 128;
+	g->lifetime = 55000;
+	g->health = -1;
+	struct brain *b = brain_new(0xdead, 5, array_len(code));
 	memcpy(b->code, code, sizeof(code));
-	struct animal *a  = animal_new(b, 50, 10000, -1);
-	struct animal *a1 = animal_new(b, 50, 10000, -1);
+	for (size_t i = 0; i < N_ANIMALS; ++i) {
+		struct animal *a = animal_new(b, 10000);
+		grid_get(g, rand() % g->width, rand() % g->height)->animal = a;
+		grid_add_animal(g, a);
+	}
 	g->species = b;
-	g->animals = a;
-	a->next = a1;
-	grid_get(g, 7, 10)->animal = a;
-	grid_get(g, 12, 10)->animal = a1;
-	a1->ram[0] = 2;
 	while (true) {
-		size_t i;
 		grid_draw(g, stdout);
+		printf("\n");
+		usleep(9000);
 		grid_update(g);
-		usleep(20000);
 	}
 	grid_free(g);
 }
