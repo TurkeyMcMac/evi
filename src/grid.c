@@ -1,4 +1,6 @@
 #include "grid.h"
+
+#include "random.h"
 #include <stdlib.h>
 
 struct grid *grid_new(size_t width, size_t height)
@@ -191,14 +193,19 @@ static void free_extinct(struct grid *g)
 			last_b = &b->next;
 }
 
+uint32_t grid_rand(struct grid *self)
+{
+	return self->random = randomize(self->random);
+}
+
 void grid_update(struct grid *self)
 {
 	step_animals(self);
 	update_tiles(self);
 	free_extinct(self);
 	if (self->tick % self->drop_interval == 0) {
-		grid_get_unck(self, rand() % self->width, rand() % self->height)
-			->chemicals[rand() % 3 + 1] = self->drop_amount;
+		grid_get_unck(self, grid_rand(self) % self->width, grid_rand(self) % self->height)
+			->chemicals[grid_rand(self) % 3 + 1] = self->drop_amount;
 	}
 	++self->tick;
 }

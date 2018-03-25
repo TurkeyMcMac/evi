@@ -1,0 +1,55 @@
+Format of an evi save.
+
+Phrases followed by a colon then a number indicate a section with the size
+indicated by that number.
+
+Certain sections are repeated a number of times with the following syntax:
+repeated (number) times:
+    sections...
+
+Phrases followed by an equals sign are values which remain constant for any
+given version.
+
+-------------------------------------------------------|
+                                                       |
+Version 1                                              |
+                                                       |
+-------------------------------------------------------|
+                                                       |
+Constants:                                             |
+                                                       |
+instruction size = 6                                   |
+number of kinds of chemical = 11                       |
+memory cell size = 2                                   |
+                                                       |
+-------------------------------------------------------|
+                                                       |
+format version number: 4                               |
+tick: 2                                                |
+drop interval: 2                                       |
+starting health: 2                                     |
+starting lifetime: 2                                   |
+random state: 4                                        |
+drop amount: 1                                         |
+number of species: 4                                   |
+repeated (number of species) times:                    |
+    signature: 2                                       |
+    RAM size: 2                                        |
+    code size: 2                                       |
+    code: (code size) * (instruction size)             |
+width: 4                                               |
+height: 4                                              |
+repeated (width * height) times:                       |
+    relative animal offset: 4                          |
+    chemicals: number of kinds of chemical             |
+repeated (number of occupied tiles) times:             |
+    species number: 4                                  |
+    health: 2                                          |
+    energy: 2                                          |
+    lifetime: 2                                        |
+    instruction pointer: 2                             |
+    flags register: 2                                  |
+    stomach: number of kinds of chemical               |
+    RAM: (species' RAM size) * (memory cell size)      |
+                                                       |
+-------------------------------------------------------|

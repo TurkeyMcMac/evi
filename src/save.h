@@ -12,4 +12,6 @@
 
 int write_grid(struct grid *g, FILE *dest, const char **err);
 
+struct grid *read_grid(FILE *src, const char **err);
+
 #endif /* Header guard */

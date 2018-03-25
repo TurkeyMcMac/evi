@@ -17,7 +17,7 @@ struct grid {
 	struct animal *animals;
 	uint16_t tick, drop_interval;
 	uint16_t health, lifetime;
-	unsigned random;
+	uint32_t random;
 	uint8_t drop_amount;
 	size_t width, height;
 	struct tile tiles[];
@@ -36,6 +36,8 @@ const struct tile *grid_get_const_unck(const struct grid *self, size_t x, size_t
 const struct tile *grid_get_const(const struct grid *self, size_t x, size_t y);
 
 void grid_draw(const struct grid *self, FILE *dest);
+
+uint32_t grid_rand(struct grid *self);
 
 void grid_update(struct grid *self);
 
