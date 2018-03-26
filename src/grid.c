@@ -74,20 +74,25 @@ static void print_color(const struct tile *t, FILE *dest)
 	fprintf(dest, "\x1B[48;5;%dm", r + g + b + 16);
 }
 
+#define EMPTY_GRAY "237"
+
 void grid_draw(const struct grid *self, FILE *dest)
 {
+	fprintf(dest, "\x1B[38;5;"EMPTY_GRAY"m");
 	size_t x, y;
 	for (y = 0; y < self->height; ++y) {
 		for (x = 0; x < self->width; ++x) {
 			const struct tile *t = grid_get_const_unck(self, x, y);
 			print_color(t, dest);
 			if (t->animal)
-				fprintf(dest, "<>");	
+				fprintf(dest, "\x1B[39m[]\x1B[38;5;"EMPTY_GRAY"m");
 			else
-				fprintf(dest, "  ");
+				fprintf(dest, "[]");
 		}
-		fprintf(dest, "\x1B[0m\n");
+		fprintf(dest, "\x1B[49m\n");
 	}
+	fprintf(dest, "\x1B[39;49m");
+	fflush(dest);
 }
 
 static void step_animals(struct grid *g)

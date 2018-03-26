@@ -45,7 +45,7 @@ static const enum chemical spring_colors[] = {CHEM_RED, CHEM_GREEN, CHEM_BLUE};
 
 #define array_len(arr) (sizeof((arr)) / sizeof(*(arr)))
 
-#define N_ANIMALS 100
+#define N_ANIMALS 1
 
 void save_grid(const char *file_name)
 {
@@ -66,11 +66,14 @@ void save_grid(const char *file_name)
 	b->next = g->species;
 	g->species = b;
 	size_t i;
-	for (i = 0; i < N_ANIMALS; ++i) {
-		struct animal *a = animal_new(b, 10000);
+	for (i = 0; i < N_ANIMALS; ) {
 		struct tile *t = grid_get_unck(g, rand() % g->width, rand() % g->height);
-		t->animal = a;
-		grid_add_animal(g, a);
+		if (!t->animal) {
+			struct animal *a = animal_new(b, 10000);
+			t->animal = a;
+			grid_add_animal(g, a);
+			++i;
+		}
 	}
 	i = 1000;
 	while (i--) {
@@ -107,8 +110,17 @@ void run_grid(const char *file_name)
 		usleep(9000);
 		grid_update(g);
 	}
+	int status;
+	freopen(file_name, "wb", file);
+	if (write_grid(g, file, &err)) {
+		printf("%s; %s.\n", strerror(errno), err);
+		status = EXIT_FAILURE;
+	} else {
+		status = EXIT_SUCCESS;
+	}
 	grid_free(g);
-	exit(EXIT_SUCCESS);
+	fclose(file);
+	exit(status);
 }
 
 int main(int argc, char *argv[])
