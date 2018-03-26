@@ -287,6 +287,7 @@ static struct animal *read_animal(struct brain **species,
 		*err = "species number too high";
 	}
 	struct brain *b = species[brain_num];
+	++b->refcount;
 	struct animal *a = malloc(sizeof(struct animal) + b->ram_size * sizeof(uint16_t));
 	a->brain = b;
 	uint16_t short_fields[5];
