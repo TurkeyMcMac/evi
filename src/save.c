@@ -128,7 +128,7 @@ struct grid *read_grid(FILE *src, const char **err)
 	FREAD(short_fields, sizeof(*short_fields), 4, src, err);
 	FREAD(&random, sizeof(random), 1, src, err);
 	FREAD(&drop_amount, sizeof(drop_amount), 1, src, err);
-	
+
 	uint32_t n_species;
 	FREAD(&n_species, sizeof(n_species), 1, src, err);
 	n_species = ntohl(n_species);
