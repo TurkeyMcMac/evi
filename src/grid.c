@@ -85,7 +85,7 @@ void grid_draw(const struct grid *self, FILE *dest)
 			const struct tile *t = grid_get_const_unck(self, x, y);
 			print_color(t, dest);
 			if (t->animal)
-				fprintf(dest, "\x1B[39m[]\x1B[38;5;"EMPTY_GRAY"m");
+				fprintf(dest, "\x1B[37m[]\x1B[38;5;"EMPTY_GRAY"m");
 			else
 				fprintf(dest, "[]");
 		}
