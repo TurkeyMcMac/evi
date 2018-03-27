@@ -47,7 +47,7 @@ static const enum chemical spring_colors[] = {CHEM_RED, CHEM_GREEN, CHEM_BLUE};
 
 #define N_ANIMALS 1
 
-void save_grid(const char *file_name)
+void save_grid(const char *file_name, long ticks)
 {
 	srand(time(NULL));
 	FILE *file = fopen(file_name, "wb");
@@ -65,8 +65,7 @@ void save_grid(const char *file_name)
 	memcpy(b->code, code, sizeof(code));
 	b->next = g->species;
 	g->species = b;
-	size_t i;
-	for (i = 0; i < N_ANIMALS; ) {
+	for (size_t i = 0; i < N_ANIMALS; ) {
 		struct tile *t = grid_get_unck(g, rand() % g->width, rand() % g->height);
 		if (!t->animal) {
 			struct animal *a = animal_new(b, 10000);
@@ -75,8 +74,7 @@ void save_grid(const char *file_name)
 			++i;
 		}
 	}
-	i = 1000;
-	while (i--) {
+	while (ticks--) {
 		grid_draw(g, stdout);
 		printf("\n");
 		usleep(9000);
@@ -90,7 +88,7 @@ void save_grid(const char *file_name)
 	exit(EXIT_SUCCESS);
 }
 
-void run_grid(const char *file_name)
+void run_grid(const char *file_name, long ticks)
 {
 	FILE *file = fopen(file_name, "rb");
 	if (!file) {
@@ -103,8 +101,7 @@ void run_grid(const char *file_name)
 		printf("%s; %s.\n", strerror(errno), err);
 		exit(EXIT_FAILURE);
 	}
-	size_t i = 1000;
-	while (i--) {
+	while (ticks--) {
 		grid_draw(g, stdout);
 		printf("\n");
 		usleep(9000);
@@ -125,12 +122,13 @@ void run_grid(const char *file_name)
 
 int main(int argc, char *argv[])
 {
+	long ticks = strtol(argv[3], NULL, 10);
 	switch (argv[1][0]) {
 	case 'w':
-		save_grid(argv[2]);
+		save_grid(argv[2], ticks);
 		break;
 	case 'r':
-		run_grid(argv[2]);
+		run_grid(argv[2], ticks);
 		break;
 	default:
 		break;
