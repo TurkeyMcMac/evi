@@ -47,6 +47,18 @@ static const enum chemical spring_colors[] = {CHEM_RED, CHEM_GREEN, CHEM_BLUE};
 
 #define N_ANIMALS 1
 
+void simulate_grid(struct grid *g, long ticks)
+{
+	printf("\x1B[2J");
+	while (ticks--) {
+		printf("\x1B[%luA", g->width);
+		grid_draw(g, stdout);
+		fflush(stdout);
+		usleep(9000);
+		grid_update(g);
+	}
+}
+
 void save_grid(const char *file_name, long ticks)
 {
 	srand(time(NULL));
@@ -74,12 +86,7 @@ void save_grid(const char *file_name, long ticks)
 			++i;
 		}
 	}
-	while (ticks--) {
-		grid_draw(g, stdout);
-		printf("\n");
-		usleep(50000);
-		grid_update(g);
-	}
+	simulate_grid(g, ticks);
 	const char *err;
 	if (write_grid(g, file, &err))
 		printf("%s; %s.\n", strerror(errno), err);
@@ -101,14 +108,7 @@ void run_grid(const char *file_name, long ticks)
 		printf("%s; %s.\n", strerror(errno), err);
 		exit(EXIT_FAILURE);
 	}
-	while (ticks--) {
-		grid_draw(g, stdout);
-		printf("\n");
-		fflush(stdout);
-		printf("\x1B[%luA", g->height + 1);
-		usleep(9000);
-		grid_update(g);
-	}
+	simulate_grid(g, ticks);
 	int status;
 	freopen(file_name, "wb", file);
 	if (write_grid(g, file, &err)) {
