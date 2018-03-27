@@ -77,7 +77,7 @@ void save_grid(const char *file_name, long ticks)
 	while (ticks--) {
 		grid_draw(g, stdout);
 		printf("\n");
-		usleep(9000);
+		usleep(50000);
 		grid_update(g);
 	}
 	const char *err;
@@ -104,6 +104,8 @@ void run_grid(const char *file_name, long ticks)
 	while (ticks--) {
 		grid_draw(g, stdout);
 		printf("\n");
+		fflush(stdout);
+		printf("\x1B[%luA", g->height + 1);
 		usleep(9000);
 		grid_update(g);
 	}
@@ -122,6 +124,8 @@ void run_grid(const char *file_name, long ticks)
 
 int main(int argc, char *argv[])
 {
+	char *buffer = malloc(800000);
+	setbuffer(stdout, buffer, 800000);
 	long ticks = strtol(argv[3], NULL, 10);
 	switch (argv[1][0]) {
 	case 'w':
