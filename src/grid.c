@@ -164,7 +164,6 @@ static void update_tiles(struct grid *g)
 			if (a && !t->newly_occupied) {
 				if (animal_is_dead(a)) {
 					animal_free(a);
-					printf("freed\n");
 					t->animal = NULL;
 				} else
 					animal_step(a, g, x, y);
