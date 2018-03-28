@@ -28,29 +28,24 @@ struct brain {
 struct brain *brain_new(uint16_t signature, uint16_t ram_size, uint16_t code_size);
 
 struct animal {
-	struct animal *next;
 	struct brain *brain;
 	uint16_t health;
 	uint16_t energy;
 	uint16_t lifetime;
 	uint16_t instr_ptr;
 	uint16_t flags;
-	uint16_t action;
 	uint8_t stomach[N_CHEMICALS];
-	bool is_dead;
 	uint16_t ram[];
 };
 
 struct animal *animal_new(struct brain *brain, uint16_t energy);
 
-void animal_step(struct animal *self);
+struct grid;
+void animal_step(struct animal *self, struct grid *grid, size_t x, size_t y);
 
-bool animal_die(struct animal *self);
+bool animal_is_dead(const struct animal *self);
 
 void animal_free(struct animal *self);
-
-struct grid;
-void animal_act(struct animal *self, struct grid *grid, size_t x, size_t y);
 
 enum opcode {
 /* General */

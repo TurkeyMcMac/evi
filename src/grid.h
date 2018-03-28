@@ -4,17 +4,18 @@
 
 #include "animal.h"
 #include "chemicals.h"
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 
 struct tile {
 	struct animal *animal;
 	uint8_t chemicals[N_CHEMICALS];
+	bool newly_occupied;
 };
 
 struct grid {
 	struct brain *species;
-	struct animal *animals;
 	uint16_t tick, drop_interval;
 	uint16_t health, lifetime;
 	uint32_t random;
@@ -24,13 +25,13 @@ struct grid {
 	struct tile tiles[];
 };
 
+void tile_set_animal(struct tile *self, struct animal *a);
+
 struct grid *grid_new(size_t width, size_t height);
 
 struct tile *grid_get_unck(struct grid *self, size_t x, size_t y);
 
 struct tile *grid_get(struct grid *self, size_t x, size_t y);
-
-void grid_add_animal(struct grid *self, struct animal *a);
 
 const struct tile *grid_get_const_unck(const struct grid *self, size_t x, size_t y);
 

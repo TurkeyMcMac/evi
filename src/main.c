@@ -81,8 +81,9 @@ void save_grid(const char *file_name, long ticks)
 		struct tile *t = grid_get_unck(g, rand() % g->width, rand() % g->height);
 		if (!t->animal) {
 			struct animal *a = animal_new(b, 10000);
-			t->animal = a;
-			grid_add_animal(g, a);
+			tile_set_animal(t, a);
+			a->health = g->health;
+			a->lifetime = g->lifetime;
 			++i;
 		}
 	}

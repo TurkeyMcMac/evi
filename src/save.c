@@ -170,8 +170,6 @@ struct grid *read_grid(FILE *src, const char **err)
 			if (!a) {
 				return NULL;
 			}
-			a->next = g->animals;
-			g->animals = a;
 			g->tiles[i].animal = a;
 			if (fseek(src, next_tile, SEEK_SET))
 				FAIL_PTR(fseek, err);
@@ -298,7 +296,6 @@ static struct animal *read_animal(struct brain **species,
 	a->lifetime = ntohs(fields16[2]);
 	a->instr_ptr = ntohs(fields16[3]);
 	a->flags = ntohs(fields16[4]);
-	a->action = -1;
 	FREAD(a->stomach, sizeof(*a->stomach), N_CHEMICALS, src, err);
 	for (uint16_t i = 0; i < b->ram_size; ++i) {
 		FREAD(&a->ram[i], sizeof(a->ram[i]), 1, src, err);

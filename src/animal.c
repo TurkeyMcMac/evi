@@ -148,15 +148,15 @@ static int jump(struct animal *a, uint16_t dest)
 
 #define OP_CASE_NUMERIC_BINARY(name, action) \
 	case OP_##name: { \
-		uint16_t temp, *dest = write_dest(self, instr->l_fmt, instr->left); \
-		if (!dest || read_from(self, instr->r_fmt, instr->right, &temp)) \
+		uint16_t temp, *dest = write_dest(self, instr.l_fmt, instr.left); \
+		if (!dest || read_from(self, instr.r_fmt, instr.right, &temp)) \
 			break; \
 		*dest action##= temp; \
 	} break
 
 #define OP_CASE_NUMERIC_UNARY(name, action) \
 	case OP_##name: { \
-		uint16_t *dest = write_dest(self, instr->l_fmt, instr->left); \
+		uint16_t *dest = write_dest(self, instr.l_fmt, instr.left); \
 		if (dest) \
 			(action); \
 		else \
@@ -166,8 +166,8 @@ static int jump(struct animal *a, uint16_t dest)
 #define OP_CASE_JUMP_COND(name, condition) \
 	case OP_##name: { \
 		uint16_t dest, test; \
-		if (read_from(self, instr->l_fmt, instr->left, &dest) \
-		 || read_from(self, instr->r_fmt, instr->right, &test)) \
+		if (read_from(self, instr.l_fmt, instr.left, &dest) \
+		 || read_from(self, instr.r_fmt, instr.right, &test)) \
 			goto error; \
 		if (condition) { \
 			if (jump(self, dest)) \
@@ -177,173 +177,6 @@ static int jump(struct animal *a, uint16_t dest)
 		} \
 	} break
 
-void animal_step(struct animal *self)
-{
-	if (self->instr_ptr >= self->brain->code_size)
-		return;
-	struct instruction *instr = &self->brain->code[self->instr_ptr];
-	if (instr->opcode >= N_OPCODES) {
-		set_error(self, FINVAL_OPCODE);
-		goto error;
-	}
-	switch (instr->opcode) {
-/* General */
-	case OP_MOVE: {
-		uint16_t *dest = write_dest(self, instr->l_fmt, instr->left);
-		if (!dest || read_from(self, instr->r_fmt, instr->right, dest))
-			goto error;
-	} break;
-	case OP_XCHG: {
-		uint16_t temp, *destl, *destr;
-		if ((destl = write_dest(self, instr->l_fmt, instr->left)) == NULL
-		 || (destr = write_dest(self, instr->r_fmt, instr->right)) == NULL)
-			goto error;
-		temp = *destl;
-		*destl = *destr;
-		*destr = temp;
-	} break;
-	case OP_GFLG: {
-		uint16_t *dest = write_dest(self, instr->l_fmt, instr->left);
-		if (dest)
-			*dest = self->flags;
-		else
-			goto error;
-	} break;
-	case OP_SFLG: {
-		if (read_from(self, instr->l_fmt, instr->left, &self->flags))
-			goto error;
-	} break;
-	case OP_GIPT: {
-		uint16_t *dest = write_dest(self, instr->l_fmt, instr->left);
-		if (dest)
-			*dest = self->instr_ptr;
-		else
-			goto error;
-	} break;
-/* Bitwise */
-	OP_CASE_NUMERIC_BINARY(AND, &);
-	OP_CASE_NUMERIC_BINARY(OR, |);
-	OP_CASE_NUMERIC_BINARY(XOR, ^);
-	OP_CASE_NUMERIC_UNARY(NOT, *dest = ~*dest);
-	OP_CASE_NUMERIC_BINARY(SHFR, >>);
-	OP_CASE_NUMERIC_BINARY(SHFL, <<);
-/* Arithmetic */
-	OP_CASE_NUMERIC_BINARY(ADD, +);
-	OP_CASE_NUMERIC_BINARY(SUB, -);
-	OP_CASE_NUMERIC_UNARY(INCR, ++*dest);
-	OP_CASE_NUMERIC_UNARY(DECR, --*dest);
-/* Control flow */
-	case OP_JUMP: {
-		uint16_t dest;
-		if (read_from(self, instr->l_fmt, instr->left, &dest)
-		 || jump(self, dest))
-			goto error;
-	} return;
-	case OP_CMPR: {
-		uint16_t left, right;
-		if (read_from(self, instr->l_fmt, instr->left, &left)
-		 || read_from(self, instr->r_fmt, instr->right, &right))
-			goto error;
-		if (left > right) {
-			bits_on(self->flags, FUGREATER);
-			bits_off(self->flags, FULESSER | FEQUAL);
-		} else if (left < right) {
-			bits_on(self->flags, FULESSER);
-			bits_off(self->flags, FUGREATER | FEQUAL);
-		} else {
-			bits_on(self->flags, FEQUAL);
-			bits_off(self->flags, FULESSER | FUGREATER | FSLESSER | FSGREATER);
-			break;
-		}
-		if ((int16_t)left > (int16_t)right) {
-			bits_on(self->flags, FSGREATER);
-			bits_off(self->flags, FSLESSER);
-		} else if ((int16_t)left < (int16_t)right) {
-			bits_on(self->flags, FSLESSER);
-			bits_off(self->flags, FSGREATER);
-		}
-	} break;
-	OP_CASE_JUMP_COND(JMPA, (self->flags | test) == self->flags);
-	OP_CASE_JUMP_COND(JPNA, (self->flags & test) == 0);
-	OP_CASE_JUMP_COND(JMPO, (self->flags & test) != 0);
-	OP_CASE_JUMP_COND(JPNO, (self->flags & test) != test);
-/* Special */
-	case OP_PICK: case OP_DROP: case OP_LCHM: case OP_LNML: case OP_BABY: case OP_STEP:
-	case OP_ATTK: {
-		/* This is an interaction with the world, so it must be handled externally. */
-		self->action = self->instr_ptr;
-	} break;
-	case OP_CONV: {
-		uint16_t c1, c2;
-		if (read_from(self, instr->l_fmt, instr->left, &c1)
-		 || read_from(self, instr->r_fmt, instr->right, &c2))
-			goto error;
-		if (c1 >= N_CHEMICALS || c2 >= N_CHEMICALS) {
-			set_error(self, FINVAL_ARG);
-			goto error;
-		}
-		if (self->stomach[c1] > 0 && self->stomach[c2] > 0) {
-			--self->stomach[c1];
-			--self->stomach[c2];
-			++self->stomach[combine_chemicals(c1, c2)];
-		} else {
-			set_error(self, FEMPTY);
-			goto error;
-		}
-	} break;
-	case OP_EAT: {
-		uint16_t chem, amount;
-		if (read_from(self, instr->l_fmt, instr->left, &chem)
-		 || read_from(self, instr->r_fmt, instr->right, &amount))
-			goto error;
-		if (chem >= N_CHEMICALS) {
-			set_error(self, FINVAL_ARG);
-			goto error;
-		}
-		amount &= UINT8_MAX;
-		if (amount > self->stomach[chem]) {
-			set_error(self, FEMPTY);
-			amount = self->stomach[chem];
-		}
-		self->stomach[chem] -= amount;
-		add_saturate(&self->energy, amount * chemical_table[chem].energy);
-	} break;
-	case OP_GCHM: {
-		uint16_t chem, *dest = write_dest(self, instr->l_fmt, instr->left);
-		if (!dest || read_from(self, instr->r_fmt, instr->right, &chem))
-			goto error;
-		if (chem >= N_CHEMICALS) {
-			set_error(self, FINVAL_ARG);
-			goto error;
-		}
-		*dest = self->stomach[chem];
-	} break;
-	case OP_GHLT: {
-		uint16_t *dest = write_dest(self, instr->l_fmt, instr->left);
-		if (dest)
-			*dest = self->health;
-		else
-			goto error;
-	} break;
-	case OP_GNRG: {
-		uint16_t *dest = write_dest(self, instr->l_fmt, instr->left);
-		if (dest)
-			*dest = self->energy - GNRG_COST; /* We don't have to deal with underflow
-			                                     because if it occurs, the animal will
-							     die immediately before being able to
-							     react. */
-		else
-			goto error;
-	} break;
-	default: {
-		set_error(self, FINVAL_OPCODE);
-	} goto error;
-	}
-	bits_off(self->flags, FERRORS);
-	sub_saturate(&self->energy, op_info[instr->opcode].energy);
-error:
-	++self->instr_ptr;
-}
 
 enum {
 	DIRECTION_UP,
@@ -416,26 +249,110 @@ const struct tile *get_relative(const struct grid *g,
 	y += relative_y;
 	return grid_get_const(g, x, y);
 }
-
-void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
+void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 {
-	if (self->action >= self->brain->code_size)
+	if (self->instr_ptr >= self->brain->code_size)
 		return;
-	struct instruction action = self->brain->code[self->action];
-	switch (action.opcode) {
+	struct instruction instr = self->brain->code[self->instr_ptr];
+	if (instr.opcode >= N_OPCODES) {
+		set_error(self, FINVAL_OPCODE);
+		goto error;
+	}
+	switch (instr.opcode) {
+/* General */
+	case OP_MOVE: {
+		uint16_t *dest = write_dest(self, instr.l_fmt, instr.left);
+		if (!dest || read_from(self, instr.r_fmt, instr.right, dest))
+			goto error;
+	} break;
+	case OP_XCHG: {
+		uint16_t temp, *destl, *destr;
+		if ((destl = write_dest(self, instr.l_fmt, instr.left)) == NULL
+		 || (destr = write_dest(self, instr.r_fmt, instr.right)) == NULL)
+			goto error;
+		temp = *destl;
+		*destl = *destr;
+		*destr = temp;
+	} break;
+	case OP_GFLG: {
+		uint16_t *dest = write_dest(self, instr.l_fmt, instr.left);
+		if (dest)
+			*dest = self->flags;
+		else
+			goto error;
+	} break;
+	case OP_SFLG: {
+		if (read_from(self, instr.l_fmt, instr.left, &self->flags))
+			goto error;
+	} break;
+	case OP_GIPT: {
+		uint16_t *dest = write_dest(self, instr.l_fmt, instr.left);
+		if (dest)
+			*dest = self->instr_ptr;
+		else
+			goto error;
+	} break;
+/* Bitwise */
+	OP_CASE_NUMERIC_BINARY(AND, &);
+	OP_CASE_NUMERIC_BINARY(OR, |);
+	OP_CASE_NUMERIC_BINARY(XOR, ^);
+	OP_CASE_NUMERIC_UNARY(NOT, *dest = ~*dest);
+	OP_CASE_NUMERIC_BINARY(SHFR, >>);
+	OP_CASE_NUMERIC_BINARY(SHFL, <<);
+/* Arithmetic */
+	OP_CASE_NUMERIC_BINARY(ADD, +);
+	OP_CASE_NUMERIC_BINARY(SUB, -);
+	OP_CASE_NUMERIC_UNARY(INCR, ++*dest);
+	OP_CASE_NUMERIC_UNARY(DECR, --*dest);
+/* Control flow */
+	case OP_JUMP: {
+		uint16_t dest;
+		if (read_from(self, instr.l_fmt, instr.left, &dest)
+		 || jump(self, dest))
+			goto error;
+	} return;
+	case OP_CMPR: {
+		uint16_t left, right;
+		if (read_from(self, instr.l_fmt, instr.left, &left)
+		 || read_from(self, instr.r_fmt, instr.right, &right))
+			goto error;
+		if (left > right) {
+			bits_on(self->flags, FUGREATER);
+			bits_off(self->flags, FULESSER | FEQUAL);
+		} else if (left < right) {
+			bits_on(self->flags, FULESSER);
+			bits_off(self->flags, FUGREATER | FEQUAL);
+		} else {
+			bits_on(self->flags, FEQUAL);
+			bits_off(self->flags, FULESSER | FUGREATER | FSLESSER | FSGREATER);
+			break;
+		}
+		if ((int16_t)left > (int16_t)right) {
+			bits_on(self->flags, FSGREATER);
+			bits_off(self->flags, FSLESSER);
+		} else if ((int16_t)left < (int16_t)right) {
+			bits_on(self->flags, FSLESSER);
+			bits_off(self->flags, FSGREATER);
+		}
+	} break;
+	OP_CASE_JUMP_COND(JMPA, (self->flags | test) == self->flags);
+	OP_CASE_JUMP_COND(JPNA, (self->flags & test) == 0);
+	OP_CASE_JUMP_COND(JMPO, (self->flags & test) != 0);
+	OP_CASE_JUMP_COND(JPNO, (self->flags & test) != test);
+/* Special */
 	case OP_PICK: {
 		uint16_t direction, num_and_id;
-		if (read_from(self, action.l_fmt, action.left, &direction)
-		 || read_from(self, action.r_fmt, action.right, &num_and_id))
-			break;
+		if (read_from(self, instr.l_fmt, instr.left, &direction)
+		 || read_from(self, instr.r_fmt, instr.right, &num_and_id))
+			goto error;
 		struct tile *targ = in_direction(g, direction, x, y);
 		if ((ptrdiff_t)targ == -1) {
 			set_error(self, FINVAL_ARG);
-			break;
+			goto error;
 		}
 		if (!targ) {
 			set_error(self, FBLOCKED);
-			break;
+			goto error;
 		}
 		uint8_t num = num_and_id >> 8,
 			id = num_and_id & UINT8_MAX;
@@ -443,17 +360,17 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 	} break;
 	case OP_DROP: {
 		uint16_t direction, num_and_id;
-		if (read_from(self, action.l_fmt, action.left, &direction)
-		 || read_from(self, action.r_fmt, action.right, &num_and_id))
-			break;
+		if (read_from(self, instr.l_fmt, instr.left, &direction)
+		 || read_from(self, instr.r_fmt, instr.right, &num_and_id))
+			goto error;
 		struct tile *targ = in_direction(g, direction, x, y);
 		if ((ptrdiff_t)targ == -1) {
 			set_error(self, FINVAL_ARG);
-			break;
+			goto error;
 		}
 		if (!targ) {
 			set_error(self, FBLOCKED);
-			break;
+			goto error;
 		}
 		uint8_t num = num_and_id >> 8,
 			id = num_and_id & UINT8_MAX;
@@ -461,30 +378,30 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 	} break;
 	case OP_LCHM: {
 		uint16_t id_and_x_and_y, *dest =
-			write_dest(self, action.l_fmt, action.left);
+			write_dest(self, instr.l_fmt, instr.left);
 		if (!dest
-		 || read_from(self, action.r_fmt, action.right, &id_and_x_and_y))
-			break;
+		 || read_from(self, instr.r_fmt, instr.right, &id_and_x_and_y))
+			goto error;
 		const struct tile *look = get_relative(g, id_and_x_and_y, x, y);
 		if (!look) {
 			set_error(self, FBLOCKED);
-			break;
+			goto error;
 		}
 		uint16_t id = id_and_x_and_y >> 10;
 		if (id >= N_CHEMICALS) {
 			set_error(self, FINVAL_ARG);
-			break;
+			goto error;
 		}
 		*dest = look->chemicals[id];
 	} break;
 	case OP_LNML: {
-		uint16_t x_and_y, *dest = write_dest(self, action.l_fmt, action.left);
-		if (!dest || read_from(self, action.r_fmt, action.right, &x_and_y))
-			break;
+		uint16_t x_and_y, *dest = write_dest(self, instr.l_fmt, instr.left);
+		if (!dest || read_from(self, instr.r_fmt, instr.right, &x_and_y))
+			goto error;
 		const struct tile *look = get_relative(g, x_and_y, x, y);
 		if (!look) {
 			set_error(self, FBLOCKED);
-			break;
+			goto error;
 		}
 		if (look->animal)
 			*dest = look->animal->brain->signature;
@@ -493,13 +410,13 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 	} break;
 	case OP_BABY: {
 		uint16_t direction, energy;
-		if (read_from(self, action.l_fmt, action.left, &direction)
-		 || read_from(self, action.r_fmt, action.right, &energy))
-			break;
+		if (read_from(self, instr.l_fmt, instr.left, &direction)
+		 || read_from(self, instr.r_fmt, instr.right, &energy))
+			goto error;
 		struct tile *targ = in_direction(g, direction, x, y);
 		if (!targ) {
 			set_error(self, FBLOCKED);
-			break;
+			goto error;
 		}
 		add_saturate(&energy, self->brain->ram_size);
 		uint8_t codea = self->brain->code_size >> 3,
@@ -508,58 +425,128 @@ void animal_act(struct animal *self, struct grid *g, size_t x, size_t y)
 		 || codea > self->stomach[CHEM_CODEA]
 		 || codeb > self->stomach[CHEM_CODEB]) {
 			set_error(self, FEMPTY);
-			break;
+			goto error;
 		}
 		self->energy -= energy;
 		self->stomach[CHEM_CODEA] -= codea;
 		self->stomach[CHEM_CODEB] -= codeb;
 		targ->animal = animal_new(self->brain, energy - self->brain->ram_size);
-		grid_add_animal(g, targ->animal);
+		targ->animal->health = g->health;
+		targ->animal->lifetime = g->lifetime;
 	} break;
 	case OP_STEP: {
 		uint16_t direction;
-		if (read_from(self, action.l_fmt, action.left, &direction))
-			break;
+		if (read_from(self, instr.l_fmt, instr.left, &direction))
+			goto error;
 		struct tile *dest = in_direction(g, direction, x, y);
 		if ((ptrdiff_t)dest == -1) {
 			set_error(self, FINVAL_ARG);
-			break;
+			goto error;
 		}
 		if (!dest) {
 			set_error(self, FBLOCKED);
-			break;
+			goto error;
+		}
+		if (dest->animal) {
+			set_error(self, FBLOCKED);
+			goto error;
 		}
 		if (!dest->animal) {
-			dest->animal = self;
+			tile_set_animal(dest, self);
 			grid_get_unck(g, x, y)->animal = NULL;
-		} else
-			set_error(self, FBLOCKED);
+		}
 	} break;
 	case OP_ATTK: {
 		uint16_t direction, power;
-		if (read_from(self, action.l_fmt, action.left, &direction)
-		 || read_from(self, action.r_fmt, action.right, &power))
-			break;
+		if (read_from(self, instr.l_fmt, instr.left, &direction)
+		 || read_from(self, instr.r_fmt, instr.right, &power))
+			goto error;
 		struct tile *targ = in_direction(g, direction, x, y);
 		if ((ptrdiff_t)targ == -1) {
 			set_error(self, FINVAL_ARG);
-			break;
+			goto error;
 		}
 		if (!targ) {
 			set_error(self, FBLOCKED);
-			break;
+			goto error;
 		}
 		if (!targ->animal) {
 			set_error(self, FEMPTY);
-			break;
+			goto error;
 		}
 		sub_saturate(&self->energy, power / 2);
 		sub_saturate(&targ->animal->health, power);
 	} break;
-	default:
-		break;
+	case OP_CONV: {
+		uint16_t c1, c2;
+		if (read_from(self, instr.l_fmt, instr.left, &c1)
+		 || read_from(self, instr.r_fmt, instr.right, &c2))
+			goto error;
+		if (c1 >= N_CHEMICALS || c2 >= N_CHEMICALS) {
+			set_error(self, FINVAL_ARG);
+			goto error;
+		}
+		if (self->stomach[c1] > 0 && self->stomach[c2] > 0) {
+			--self->stomach[c1];
+			--self->stomach[c2];
+			++self->stomach[combine_chemicals(c1, c2)];
+		} else {
+			set_error(self, FEMPTY);
+			goto error;
+		}
+	} break;
+	case OP_EAT: {
+		uint16_t chem, amount;
+		if (read_from(self, instr.l_fmt, instr.left, &chem)
+		 || read_from(self, instr.r_fmt, instr.right, &amount))
+			goto error;
+		if (chem >= N_CHEMICALS) {
+			set_error(self, FINVAL_ARG);
+			goto error;
+		}
+		amount &= UINT8_MAX;
+		if (amount > self->stomach[chem]) {
+			set_error(self, FEMPTY);
+			amount = self->stomach[chem];
+		}
+		self->stomach[chem] -= amount;
+		add_saturate(&self->energy, amount * chemical_table[chem].energy);
+	} break;
+	case OP_GCHM: {
+		uint16_t chem, *dest = write_dest(self, instr.l_fmt, instr.left);
+		if (!dest || read_from(self, instr.r_fmt, instr.right, &chem))
+			goto error;
+		if (chem >= N_CHEMICALS) {
+			set_error(self, FINVAL_ARG);
+			goto error;
+		}
+		*dest = self->stomach[chem];
+	} break;
+	case OP_GHLT: {
+		uint16_t *dest = write_dest(self, instr.l_fmt, instr.left);
+		if (dest)
+			*dest = self->health;
+		else
+			goto error;
+	} break;
+	case OP_GNRG: {
+		uint16_t *dest = write_dest(self, instr.l_fmt, instr.left);
+		if (dest)
+			*dest = self->energy - GNRG_COST; /* We don't have to deal with underflow
+			                                     because if it occurs, the animal will
+							     die immediately before being able to
+							     react. */
+		else
+			goto error;
+	} break;
+	default: {
+		set_error(self, FINVAL_OPCODE);
+	} goto error;
 	}
-	self->action = -1;
+	bits_off(self->flags, FERRORS);
+	sub_saturate(&self->energy, op_info[instr.opcode].energy);
+error:
+	++self->instr_ptr;
 }
 
 struct brain *brain_new(uint16_t signature, uint16_t ram_size, uint16_t code_size)
@@ -582,18 +569,14 @@ struct animal *animal_new(struct brain *brain, uint16_t energy)
 	self->energy = energy;
 	self->instr_ptr = 0;
 	self->flags = 0;
-	self->action = -1;
 	memset(self->stomach, 0, N_CHEMICALS);
-	self->is_dead = false;
 	memset(self->ram, 0, brain->ram_size * sizeof(uint16_t));
 	return self;
 }
 
-bool animal_die(struct animal *self)
+bool animal_is_dead(const struct animal *self)
 {
-	--self->lifetime;
-	self->is_dead = self->lifetime == 0 || (self->energy == 0) || self->health == 0;
-	return self->is_dead;
+	return self->lifetime == 0 || self->energy == 0 || self->health == 0;
 }
 
 void animal_free(struct animal *self)

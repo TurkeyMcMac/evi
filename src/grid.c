@@ -3,6 +3,12 @@
 #include "random.h"
 #include <stdlib.h>
 
+void tile_set_animal(struct tile *self, struct animal *a)
+{
+	self->animal = a;
+	self->newly_occupied = true;
+}
+
 struct grid *grid_new(size_t width, size_t height)
 {
 	struct grid *self = calloc(1, sizeof(struct grid) + width * height * sizeof(struct tile));
@@ -23,14 +29,6 @@ struct tile *grid_get(struct grid *self, size_t x, size_t y)
 		return grid_get_unck(self, x, y);
 	else
 		return NULL;
-}
-
-void grid_add_animal(struct grid *self, struct animal *a)
-{
-	a->next = self->animals;
-	self->animals = a;
-	a->lifetime = self->lifetime;
-	a->health = self->health;
 }
 
 const struct tile *grid_get_const_unck(const struct grid *self, size_t x, size_t y)
@@ -93,19 +91,6 @@ void grid_draw(const struct grid *self, FILE *dest)
 	}
 	fprintf(dest, "\x1B[39;49m");
 	fflush(dest);
-}
-
-static void step_animals(struct grid *g)
-{
-	struct animal *a, **last_a = &g->animals;
-	SLLIST_FOR_EACH (g->animals, a) {
-		if (animal_die(a)) {
-			*last_a = a->next;
-		} else {
-			animal_step(a);
-			last_a = &a->next;
-		}
-	}
 }
 
 static uint16_t init_flow_mask(uint16_t tick)
@@ -175,13 +160,16 @@ static void update_tiles(struct grid *g)
 	for (y = 0; y < g->height; ++y)
 		for (x = 0; x < g->width; ++x) {
 			struct tile *t = grid_get_unck(g, x, y);
-			if (t->animal) {
-				if (t->animal->is_dead) {
-					animal_free(t->animal);
+			struct animal *a = t->animal;
+			if (a && !t->newly_occupied) {
+				if (animal_is_dead(a)) {
+					animal_free(a);
+					printf("freed\n");
 					t->animal = NULL;
 				} else
-					animal_act(t->animal, g, x, y);
+					animal_step(a, g, x, y);
 			}
+			t->newly_occupied = false;
 			flow_fluids(flowing, g, t, x, y);
 			evaporate_fluids(evaporating, t);
 		}
@@ -205,7 +193,6 @@ uint32_t grid_rand(struct grid *self)
 
 void grid_update(struct grid *self)
 {
-	step_animals(self);
 	update_tiles(self);
 	free_extinct(self);
 	if (self->tick % self->drop_interval == 0) {
@@ -217,11 +204,9 @@ void grid_update(struct grid *self)
 
 void grid_free(struct grid *self)
 {
-	struct animal *a = self->animals;
-	while (a != NULL) {
-		struct animal *next = a->next;
-		free(a);
-		a = next;
+	for (size_t i = 0; i < self->width * self->height; ++i) {
+		if (self->tiles[i].animal)
+			animal_free(self->tiles[i].animal);
 	}
 	struct brain *b = self->species;
 	while (b != NULL) {
