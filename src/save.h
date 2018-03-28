@@ -8,7 +8,7 @@
 #if N_CHEMICALS != 11
 	#error "Be sure to change the version number when changing N_CHEMICALS!"
 #endif
-#define SERIALIZATION_VERSION 1
+#define SERIALIZATION_VERSION 2
 
 int write_grid(struct grid *g, FILE *dest, const char **err);
 

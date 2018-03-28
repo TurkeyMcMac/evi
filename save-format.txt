@@ -12,7 +12,7 @@ given version.
 
 -------------------------------------------------------|
                                                        |
-Version 1                                              |
+Version 2                                              |
                                                        |
 -------------------------------------------------------|
                                                        |
@@ -30,6 +30,7 @@ drop interval: 2                                       |
 starting health: 2                                     |
 starting lifetime: 2                                   |
 random state: 4                                        |
+mutation chance: 4                                     |
 drop amount: 1                                         |
 number of species: 4                                   |
 repeated (number of species) times:                    |
