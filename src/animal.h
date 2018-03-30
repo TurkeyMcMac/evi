@@ -27,6 +27,30 @@ struct brain {
 
 struct brain *brain_new(uint16_t signature, uint16_t ram_size, uint16_t code_size);
 
+enum {
+	MKIND_SIGNATURE,
+	MKIND_OPCODE,
+	MKIND_INSTR_LFMT,
+	MKIND_INSTR_RFMT,
+	MKIND_INSTR_LEFT,
+	MKIND_INSTR_RIGHT,
+	MKIND_ADD,
+	MKIND_REMOVE_ONE,
+	MKIND_REMOVE_MANY,
+	MKIND_DUP_ONE,
+	MKIND_DUP_MANY,
+	MKIND_SWAP_ONE,
+	MKIND_SWAP_MANY,
+	MKIND_REPLACE,
+	MKIND_RAM_SIZE,
+
+	N_MKIND
+};
+
+struct grid;
+
+struct brain *brain_mutate(struct brain *self, struct grid *g);
+
 struct animal {
 	struct brain *brain;
 	uint16_t health;
@@ -40,7 +64,8 @@ struct animal {
 
 struct animal *animal_new(struct brain *brain, uint16_t energy);
 
-struct grid;
+struct animal *animal_mutant(struct brain *brain, uint16_t energy, struct grid *g);
+
 void animal_step(struct animal *self, struct grid *grid, size_t x, size_t y);
 
 bool animal_is_dead(const struct animal *self);

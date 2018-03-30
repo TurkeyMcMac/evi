@@ -51,7 +51,7 @@ int write_grid(struct grid *g, FILE *dest, const char **err)
 	struct brain *b;
 	n_species = 0;
 	SLLIST_FOR_EACH(g->species, b) {
-		b->save_num = n_species++;
+		b->save_num = htonl(n_species++);
 		if (write_brain(b, dest, err))
 			return -1;
 	}
@@ -132,7 +132,7 @@ struct grid *read_grid(FILE *src, const char **err)
 	uint32_t n_species;
 	FREAD(&n_species, sizeof(n_species), 1, src, err);
 	n_species = ntohl(n_species);
-	struct brain **species = malloc(n_species * sizeof(struct brain *));
+	struct brain **species = calloc(n_species , sizeof(struct brain *));
 	if (!species) {
 		*err = "too many species";
 		return NULL;
@@ -152,7 +152,7 @@ struct grid *read_grid(FILE *src, const char **err)
 	g->health = ntohs(fields16[2]);
 	g->lifetime = ntohs(fields16[3]);
 	g->random = ntohl(fields32[0]);
-	g->random = ntohl(fields32[1]);
+	g->mutate_chance = ntohl(fields32[1]);
 	g->drop_amount = drop_amount;
 
 	long next_tile = ftell(src);
@@ -284,6 +284,7 @@ static struct animal *read_animal(struct brain **species,
 	if (brain_num >= n_species) {
 		errno = ENODATA;
 		*err = "species number too high";
+		return NULL;
 	}
 	struct brain *b = species[brain_num];
 	++b->refcount;

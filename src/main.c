@@ -54,7 +54,7 @@ void simulate_grid(struct grid *g, long ticks)
 		printf("\x1B[%luA", g->width);
 		grid_draw(g, stdout);
 		fflush(stdout);
-		usleep(9000);
+		usleep(5000);
 		grid_update(g);
 	}
 }
@@ -68,6 +68,7 @@ void save_grid(const char *file_name, long ticks)
 		exit(EXIT_FAILURE);
 	}
 	struct grid *g = grid_new(50, 50);
+	g->mutate_chance = UINT32_MAX / 20;
 	g->health = 50;
 	g->lifetime = 55000;
 	g->drop_interval = 10;

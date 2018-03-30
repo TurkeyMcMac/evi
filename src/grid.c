@@ -177,17 +177,26 @@ static void update_tiles(struct grid *g)
 static void free_extinct(struct grid *g)
 {
 	struct brain *b, **last_b = &g->species;
-	SLLIST_FOR_EACH (g->species, b)
+	for (b = g->species, last_b = &g->species; b != NULL; )
 		if (b->refcount == 0) {
-			*last_b = b->next;
+			struct brain *next = b->next;
+			*last_b = next;
 			free(b);
-		} else
+			b = next;
+		} else {
 			last_b = &b->next;
+			b = b->next;
+		}
 }
 
 uint32_t grid_rand(struct grid *self)
 {
 	return self->random = randomize(self->random);
+}
+
+bool grid_next_mutant(struct grid *self)
+{
+	return grid_rand(self) < self->mutate_chance;
 }
 
 void grid_update(struct grid *self)

@@ -414,6 +414,10 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 		 || read_from(self, instr.r_fmt, instr.right, &energy))
 			goto error;
 		struct tile *targ = in_direction(g, direction, x, y);
+		if ((ptrdiff_t)targ == -1) {
+			set_error(self, FINVAL_ARG);
+			goto error;
+		}
 		if (!targ) {
 			set_error(self, FBLOCKED);
 			goto error;
@@ -430,7 +434,10 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 		self->energy -= energy;
 		self->stomach[CHEM_CODEA] -= codea;
 		self->stomach[CHEM_CODEB] -= codeb;
-		targ->animal = animal_new(self->brain, energy - self->brain->ram_size);
+		if (grid_next_mutant(g))
+			targ->animal = animal_mutant(self->brain, energy - self->brain->ram_size, g);
+		else
+			targ->animal = animal_new(self->brain, energy - self->brain->ram_size);
 		targ->animal->health = g->health;
 		targ->animal->lifetime = g->lifetime;
 	} break;
@@ -561,6 +568,50 @@ struct brain *brain_new(uint16_t signature, uint16_t ram_size, uint16_t code_siz
 	return self;
 }
 
+static struct brain *copy_brain(struct brain *b)
+{
+	struct brain *c = malloc(sizeof(*b) + b->code_size * sizeof(*b->code));
+	memcpy(c, b, sizeof(*b) + b->code_size * sizeof(*b->code));
+	c->refcount = 0;
+	c->next = NULL;
+	return c;
+}
+
+#define MKIND_CASE_INSTR_FIELD(kind, field) \
+	case MKIND_##kind: { \
+		b = copy_brain(self); \
+		b->code[grid_rand(g) % self->code_size].field = grid_rand(g); \
+	} break
+
+#define MKIND_CASE_INSTR_FMT(kind, field) \
+	case MKIND_##kind: { \
+		b = copy_brain(self); \
+		uint8_t r = grid_rand(g); \
+		size_t idx = grid_rand(g) % self->code_size; \
+		if (b->code[idx].field == r % 4) \
+			++r; \
+		b->code[idx].field = r; \
+	} break
+
+struct brain *brain_mutate(struct brain *self, struct grid *g)
+{
+	struct brain *b;
+	switch(grid_rand(g) % 6) {
+	case MKIND_SIGNATURE: {
+		b = copy_brain(self);
+		b->signature = grid_rand(g);
+	} break;
+	MKIND_CASE_INSTR_FIELD(OPCODE, opcode);
+	MKIND_CASE_INSTR_FMT(INSTR_LFMT, l_fmt);
+	MKIND_CASE_INSTR_FMT(INSTR_RFMT, r_fmt);
+	MKIND_CASE_INSTR_FIELD(INSTR_LEFT, left);
+	MKIND_CASE_INSTR_FIELD(INSTR_RIGHT, right);
+	}
+	b->next = g->species;
+	g->species = b;
+	return b;
+}
+
 struct animal *animal_new(struct brain *brain, uint16_t energy)
 {
 	struct animal *self = malloc(sizeof(struct animal) + brain->ram_size * sizeof(uint16_t));
@@ -572,6 +623,11 @@ struct animal *animal_new(struct brain *brain, uint16_t energy)
 	memset(self->stomach, 0, N_CHEMICALS);
 	memset(self->ram, 0, brain->ram_size * sizeof(uint16_t));
 	return self;
+}
+
+struct animal *animal_mutant(struct brain *brain, uint16_t energy, struct grid *g)
+{
+	return animal_new(brain_mutate(brain, g), energy);
 }
 
 bool animal_is_dead(const struct animal *self)
