@@ -213,6 +213,7 @@ void brain_print(const struct brain *self, FILE *dest)
 				self->code[i].r_fmt, self->code[i].right);
 			break;
 		default:
+			fprintf(dest, "\n");
 			break;
 		}
 	}
