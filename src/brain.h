@@ -4,6 +4,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #define GNRG_COST 1
 
@@ -30,6 +31,8 @@ struct brain *brain_new(uint16_t signature, uint16_t ram_size, uint16_t code_siz
 struct grid;
 
 struct brain *brain_mutate(const struct brain *self, struct grid *g);
+
+void brain_print(const struct brain *self, FILE *dest);
 
 enum opcode {
 /* General */
@@ -91,6 +94,7 @@ enum flags {
 
 extern const struct opcode_info {
 	char name[5];
+	uint8_t n_args;
 	uint16_t energy;
 } op_info[N_OPCODES];
 

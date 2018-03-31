@@ -11,7 +11,6 @@ void tile_set_animal(struct tile *self, struct animal *a)
 
 struct grid *grid_new(size_t width, size_t height)
 {
-	printf("width: %lu, height: %lu\n", width, height);
 	struct grid *self = calloc(1, sizeof(struct grid) + width * height * sizeof(struct tile));
 	self->width = width;
 	self->height = height;
@@ -92,6 +91,15 @@ void grid_draw(const struct grid *self, FILE *dest)
 	}
 	fprintf(dest, "\x1B[39;49m");
 	fflush(dest);
+}
+
+void grid_print_species(const struct grid *self, size_t threshold, FILE *dest)
+{
+	const struct brain *b;
+	SLLIST_FOR_EACH(self->species, b) {
+		if (b->refcount >= threshold)
+			brain_print(b, dest);
+	}
 }
 
 static uint16_t init_flow_mask(uint16_t tick)

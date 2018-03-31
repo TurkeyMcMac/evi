@@ -39,6 +39,8 @@ const struct tile *grid_get_const(const struct grid *self, size_t x, size_t y);
 
 void grid_draw(const struct grid *self, FILE *dest);
 
+void grid_print_species(const struct grid *self, size_t threshold, FILE *dest);
+
 uint32_t grid_rand(struct grid *self);
 
 bool grid_next_mutant(struct grid *self);

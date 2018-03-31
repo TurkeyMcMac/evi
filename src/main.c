@@ -51,7 +51,6 @@ void canceller(int _)
 
 void simulate_grid(struct grid *g, long ticks)
 {
-	fprintf(stderr, "simulating\n");
 //	printf("\x1B[2J");
 	while (ticks--) {
 /*		printf("\x1B[%luA", g->width);
@@ -124,6 +123,7 @@ void run_grid(const char *file_name, long ticks)
 			break;
 		}
 	}
+	grid_print_species(g, 5, stderr);
 	grid_free(g);
 	fclose(file);
 	exit(EXIT_SUCCESS);

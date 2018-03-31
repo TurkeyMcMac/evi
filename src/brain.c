@@ -5,44 +5,46 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define OP_INFO(name, energy) [OP_##name] = {#name, energy}
+#define OP_INFO(name, energy, n_args) [OP_##name] = {#name, n_args, energy}
 
 const struct opcode_info op_info[N_OPCODES] = {
-	/*	Name	Energy */
-	OP_INFO(MOVE,	     1),
-	OP_INFO(XCHG,	     2),
-	OP_INFO(GFLG,	     1),
-	OP_INFO(SFLG,	     1),
-	OP_INFO(GIPT,	     1),
-	OP_INFO(AND,	     4),
-	OP_INFO(OR,	     4),
-	OP_INFO(XOR,	     4),
-	OP_INFO(NOT,	     3),
-	OP_INFO(SHFR,	     4),
-	OP_INFO(SHFL,	     4),
-	OP_INFO(ADD,	     6),
-	OP_INFO(SUB,	     6),
-	OP_INFO(INCR,	     4),
-	OP_INFO(DECR,	     4),
-	OP_INFO(JUMP,	     4),
-	OP_INFO(CMPR,	     6),
-	OP_INFO(JMPA,	     6),
-	OP_INFO(JPNA,	     6),
-	OP_INFO(JMPO,	     6),
-	OP_INFO(JPNO,	     6),
-	OP_INFO(PICK,	     8),
-	OP_INFO(DROP,	     7),
-	OP_INFO(LCHM,	     7),
-	OP_INFO(LNML,	     7),
-	OP_INFO(BABY,	     5),
-	OP_INFO(STEP,	     7),
-	OP_INFO(ATTK,	     7),
-	OP_INFO(CONV,	     6),
-	OP_INFO(EAT,	     2),
-	OP_INFO(GCHM,	     2),
-	OP_INFO(GHLT,	     1),
-	OP_INFO(GNRG,GNRG_COST),
+	/*	Name	Energy	# of arguments*/
+	OP_INFO(MOVE,	     1,	             2),
+	OP_INFO(XCHG,	     2,	             2),
+	OP_INFO(GFLG,	     1,	             1),
+	OP_INFO(SFLG,	     1,	             1),
+	OP_INFO(GIPT,	     1,	             1),
+	OP_INFO(AND,	     4,	             2),
+	OP_INFO(OR,	     4,	             2),
+	OP_INFO(XOR,	     4,	             2),
+	OP_INFO(NOT,	     3,	             1),
+	OP_INFO(SHFR,	     4,	             2),
+	OP_INFO(SHFL,	     4,	             2),
+	OP_INFO(ADD,	     6,	             2),
+	OP_INFO(SUB,	     6,	             2),
+	OP_INFO(INCR,	     4,	             1),
+	OP_INFO(DECR,	     4,	             1),
+	OP_INFO(JUMP,	     4,	             1),
+	OP_INFO(CMPR,	     6,	             2),
+	OP_INFO(JMPA,	     6,	             2),
+	OP_INFO(JPNA,	     6,	             2),
+	OP_INFO(JMPO,	     6,	             2),
+	OP_INFO(JPNO,	     6,	             2),
+	OP_INFO(PICK,	     8,	             2),
+	OP_INFO(DROP,	     7,	             2),
+	OP_INFO(LCHM,	     7,	             2),
+	OP_INFO(LNML,	     7,	             2),
+	OP_INFO(BABY,	     5,	             2),
+	OP_INFO(STEP,	     7,	             1),
+	OP_INFO(ATTK,	     7,	             2),
+	OP_INFO(CONV,	     6,	             2),
+	OP_INFO(EAT,	     2,	             2),
+	OP_INFO(GCHM,	     2,	             2),
+	OP_INFO(GHLT,	     1,	             1),
+	OP_INFO(GNRG,GNRG_COST,	             1),
 };
+
+static const struct opcode_info nop_info = {"NOP"};
 
 struct brain *brain_new(uint16_t signature, uint16_t ram_size, uint16_t code_size)
 {
@@ -187,4 +189,31 @@ struct brain *brain_mutate(const struct brain *self, struct grid *g)
 	b->next = g->species;
 	g->species = b;
 	return b;
+}
+void brain_print(const struct brain *self, FILE *dest)
+{
+	fprintf(dest, "signature:\t%04x\n", self->signature);
+	fprintf(dest, "RAM size:\t%u\n", self->ram_size);
+	fprintf(dest, "population:\t%lu\n", self->refcount);
+	fprintf(dest, "code:\n");
+	for (uint16_t i = 0; i < self->code_size; ++i) {
+		const struct opcode_info *info;
+		if (self->code[i].opcode < N_OPCODES)
+			info = &op_info[self->code[i].opcode];
+		else
+			info = &nop_info;
+		fprintf(dest, " %s\t", info->name);
+		switch (info->n_args) {
+		case 1:
+			fprintf(dest, "%u[%04x]\n", self->code[i].l_fmt, self->code[i].left);
+			break;
+		case 2:
+			fprintf(dest, "%u[%04x]  %u[%04x]\n",
+				self->code[i].l_fmt, self->code[i].left,
+				self->code[i].r_fmt, self->code[i].right);
+			break;
+		default:
+			break;
+		}
+	}
 }
