@@ -378,7 +378,7 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 			set_error(self, FINVAL_ARG);
 			goto error;
 		}
-		if (!targ) {
+		if (!targ || targ->animal) {
 			set_error(self, FBLOCKED);
 			goto error;
 		}
@@ -418,10 +418,8 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 			set_error(self, FBLOCKED);
 			goto error;
 		}
-		if (!dest->animal) {
-			tile_set_animal(dest, self);
-			grid_get_unck(g, x, y)->animal = NULL;
-		}
+		tile_set_animal(dest, self);
+		grid_get_unck(g, x, y)->animal = NULL;
 	} break;
 	case OP_ATTK: {
 		uint16_t direction, power;

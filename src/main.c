@@ -53,7 +53,7 @@ void simulate_grid(struct grid *g, long ticks)
 {
 //	printf("\x1B[2J");
 	while (ticks--) {
-/*		printf("\x1B[%luA", g->width);
+/*		printf("\x1B[%luA", g->height);
 		grid_draw(g, stdout);
 		fflush(stdout);
 		usleep(5000);
@@ -73,8 +73,8 @@ void save_grid(const char *file_name, long ticks)
 	g->mutate_chance = UINT32_MAX / 20;
 	g->health = 50;
 	g->lifetime = 30000;
-	g->drop_interval = 10;
-	g->drop_amount = 255;
+	g->drop_interval = 12;
+	g->drop_amount = 140;
 	g->random = rand();
 	struct brain *b = brain_new(0xdead, 1, array_len(code));
 	memcpy(b->code, code, sizeof(code));
