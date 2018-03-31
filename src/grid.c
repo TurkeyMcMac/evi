@@ -172,6 +172,7 @@ static void update_tiles(struct grid *g)
 			struct animal *a = t->animal;
 			if (a && !t->newly_occupied) {
 				if (animal_is_dead(a)) {
+					animal_spill_guts(a, t);
 					animal_free(a);
 					t->animal = NULL;
 				} else

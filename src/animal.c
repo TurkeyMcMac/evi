@@ -540,6 +540,15 @@ bool animal_is_dead(const struct animal *self)
 	return self->lifetime == 0 || self->energy == 0 || self->health == 0;
 }
 
+void animal_spill_guts(const struct animal *self, struct tile *t)
+{
+	for (size_t i = 0; i < N_CHEMICALS; ++i)
+		if (UINT8_MAX - t->chemicals[i] < self->stomach[i])
+			t->chemicals[i] = UINT8_MAX;
+		else
+			t->chemicals[i] += self->stomach[i];
+}
+
 void animal_free(struct animal *self)
 {
 	--self->brain->refcount;

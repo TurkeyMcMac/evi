@@ -27,6 +27,10 @@ void animal_step(struct animal *self, struct grid *grid, size_t x, size_t y);
 
 bool animal_is_dead(const struct animal *self);
 
+struct tile;
+
+void animal_spill_guts(const struct animal *self, struct tile *t);
+
 void animal_free(struct animal *self);
 
 #endif /* Header guard */
