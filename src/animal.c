@@ -514,6 +514,7 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 	sub_saturate(&self->energy, op_info[instr.opcode].energy);
 error:
 	++self->instr_ptr;
+	--self->lifetime;
 }
 
 struct animal *animal_new(struct brain *brain, uint16_t energy)

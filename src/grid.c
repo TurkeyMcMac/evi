@@ -11,6 +11,7 @@ void tile_set_animal(struct tile *self, struct animal *a)
 
 struct grid *grid_new(size_t width, size_t height)
 {
+	printf("width: %lu, height: %lu\n", width, height);
 	struct grid *self = calloc(1, sizeof(struct grid) + width * height * sizeof(struct tile));
 	self->width = width;
 	self->height = height;

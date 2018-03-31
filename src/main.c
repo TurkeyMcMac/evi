@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
@@ -14,48 +15,50 @@
 #define BABY	0x0001
 
 static const struct instruction code[] = {
-	{OP_GNRG, 1,0, DIRECT},
-
-	{OP_AND,  1,0, DIRECT, 3},
-
 	{OP_PICK, 0,0, 4, (255 << 8) | CHEM_RED},
 	{OP_PICK, 0,0, 4, (255 << 8) | CHEM_GREEN},
 	{OP_PICK, 0,0, 4, (255 << 8) | CHEM_BLUE},
 	{OP_CONV, 0,0, CHEM_GREEN, CHEM_BLUE}, /* Cyan */
 	{OP_CONV, 0,0, CHEM_RED, CHEM_CYAN},   /* Energy */
 	{OP_STEP, 1,0, DIRECT},
-	{OP_JPNO, 0,0, 0x0002, FBLOCKED},
+	{OP_JPNO, 0,0, 0x0000, FBLOCKED},
 
 	{OP_EAT,  0,0, CHEM_ENERGY, 255},
 	{OP_CONV, 0,0, CHEM_GREEN, CHEM_BLUE}, /* Cyan */
 	{OP_CONV, 0,0, CHEM_BLUE, CHEM_RED}, /* Purple */
 	{OP_CONV, 0,0, CHEM_CYAN, CHEM_PURPLE}, /* Codea */
 
-	{OP_ADD,  1,0, DIRECT, 2},
-	{OP_MOVE, 1,1, BABY, DIRECT},
-	{OP_OR,   1,0, BABY, 1 << 14},
+	{OP_BABY, 1,0, DIRECT, 10000},
+	{OP_INCR, 1,0, DIRECT},
 	{OP_AND,  1,0, DIRECT, 3},
-	{OP_BABY, 1,1, DIRECT, BABY},
-	{OP_DECR, 1,0, DIRECT},
 
-	{OP_JUMP, 0,0, 0x0001},
+	{OP_JUMP, 0,0, 0x0000},
 };
 
 static const enum chemical spring_colors[] = {CHEM_RED, CHEM_GREEN, CHEM_BLUE};
 
 #define array_len(arr) (sizeof((arr)) / sizeof(*(arr)))
 
-#define N_ANIMALS 1
+#define N_ANIMALS 100
+
+volatile sig_atomic_t running = 1;
+
+void canceller(int _)
+{
+	(void)_;
+	running = 0;
+}
 
 void simulate_grid(struct grid *g, long ticks)
 {
-	printf("\x1B[2J");
+	fprintf(stderr, "simulating\n");
+//	printf("\x1B[2J");
 	while (ticks--) {
-		printf("\x1B[%luA", g->width);
+/*		printf("\x1B[%luA", g->width);
 		grid_draw(g, stdout);
 		fflush(stdout);
 		usleep(5000);
-		grid_update(g);
+*/		grid_update(g);
 	}
 }
 
@@ -70,11 +73,11 @@ void save_grid(const char *file_name, long ticks)
 	struct grid *g = grid_new(50, 50);
 	g->mutate_chance = UINT32_MAX / 20;
 	g->health = 50;
-	g->lifetime = 55000;
+	g->lifetime = 30000;
 	g->drop_interval = 10;
-	g->drop_amount = 128;
+	g->drop_amount = 255;
 	g->random = rand();
-	struct brain *b = brain_new(0xdead, 2, array_len(code));
+	struct brain *b = brain_new(0xdead, 1, array_len(code));
 	memcpy(b->code, code, sizeof(code));
 	b->next = g->species;
 	g->species = b;
@@ -110,24 +113,27 @@ void run_grid(const char *file_name, long ticks)
 		printf("%s; %s.\n", strerror(errno), err);
 		exit(EXIT_FAILURE);
 	}
-	simulate_grid(g, ticks);
-	int status;
-	freopen(file_name, "wb", file);
-	if (write_grid(g, file, &err)) {
-		printf("%s; %s.\n", strerror(errno), err);
-		status = EXIT_FAILURE;
-	} else {
-		status = EXIT_SUCCESS;
+	while (running) {
+		simulate_grid(g, ticks);
+		if (g->species != NULL) {
+			freopen(file_name, "wb", file);
+			if (write_grid(g, file, &err))
+				fprintf(stderr, "%s; %s.\n", strerror(errno), err);
+		} else {
+			fprintf(stderr, "Extinct!\n");
+			break;
+		}
 	}
 	grid_free(g);
 	fclose(file);
-	exit(status);
+	exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char *argv[])
 {
-	char *buffer = malloc(800000);
-	setbuffer(stdout, buffer, 800000);
+	struct sigaction cancel_handler;
+	cancel_handler.sa_handler = canceller;
+	sigaction(SIGINT, &cancel_handler, NULL);
 	long ticks = strtol(argv[3], NULL, 10);
 	switch (argv[1][0]) {
 	case 'w':

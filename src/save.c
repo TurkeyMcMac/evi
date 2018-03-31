@@ -228,9 +228,16 @@ static int write_brain(const struct brain *b, FILE *dest, const char **err)
 {
 	uint16_t header[3] = {htons(b->signature), htons(b->ram_size), htons(b->code_size)};
 	FWRITE(header, sizeof(*header), 3, dest, err);
-	for (uint16_t i = 0; i < b->code_size; ++i)
+	fprintf(stderr, "population: %lu, RAM size: %u, signature: %x\n", b->refcount, b->ram_size, b->signature);
+	for (uint16_t i = 0; i < b->code_size; ++i) {
+		if (b->refcount > 1) {
+			fprintf(stderr, " %s\t", b->code[i].opcode < N_OPCODES ? op_info[b->code[i].opcode].name : "NOP");
+			fprintf(stderr, "%u:%04x\t", b->code[i].l_fmt, b->code[i].left);
+			fprintf(stderr, "%u:%04x\n", b->code[i].r_fmt, b->code[i].right);
+		}
 		if (write_instruction(&b->code[i], dest, err))
 			return -1;
+	}
 	return 0;
 }
 
