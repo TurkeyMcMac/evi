@@ -36,10 +36,10 @@ int write_grid(struct grid *g, FILE *dest, const char **err)
 	uint32_t version = htonl(SERIALIZATION_VERSION);
 	FWRITE(&version, sizeof(version), 1, dest, err);
 
-	uint16_t fields16[4] = {
-		htons(g->tick), htons(g->drop_interval), htons(g->health), htons(g->lifetime)
+	uint16_t fields16[3] = {
+		htons(g->tick), htons(g->drop_interval), htons(g->health)
 	};
-	FWRITE(fields16, sizeof(*fields16), 4, dest, err);
+	FWRITE(fields16, sizeof(*fields16), 3, dest, err);
 	uint32_t fields32[2] = {htonl(g->random), htonl(g->mutate_chance)};
 	FWRITE(fields32, sizeof(*fields32), 2, dest, err);
 	FWRITE(&g->drop_amount, sizeof(g->drop_amount), 1, dest, err);
@@ -122,17 +122,17 @@ struct grid *read_grid(FILE *src, const char **err)
 	}
 
 	/* These fields will be converted to host format later. */
-	uint16_t fields16[4];
+	uint16_t fields16[3];
 	uint32_t fields32[2];
 	uint8_t drop_amount;
-	FREAD(fields16, sizeof(*fields16), 4, src, err);
+	FREAD(fields16, sizeof(*fields16), 3, src, err);
 	FREAD(fields32, sizeof(*fields32), 2, src, err);
 	FREAD(&drop_amount, sizeof(drop_amount), 1, src, err);
 
 	uint32_t n_species;
 	FREAD(&n_species, sizeof(n_species), 1, src, err);
 	n_species = ntohl(n_species);
-	struct brain **species = calloc(n_species , sizeof(struct brain *));
+	struct brain **species = calloc(n_species, sizeof(struct brain *));
 	if (!species) {
 		*err = "too many species";
 		return NULL;
@@ -150,7 +150,6 @@ struct grid *read_grid(FILE *src, const char **err)
 	g->tick = ntohs(fields16[0]);
 	g->drop_interval = ntohs(fields16[1]);
 	g->health = ntohs(fields16[2]);
-	g->lifetime = ntohs(fields16[3]);
 	g->random = ntohl(fields32[0]);
 	g->mutate_chance = ntohl(fields32[1]);
 	g->drop_amount = drop_amount;
@@ -246,11 +245,11 @@ static int write_tile(const struct tile *t, uint32_t animal_off, FILE *dest, con
 static int write_animal(const struct animal *a, FILE *dest, const char **err)
 {
 	FWRITE(&a->brain->save_num, sizeof(a->brain->save_num), 1, dest, err);
-	uint16_t fields16[5] = {
-		htons(a->health), htons(a->energy), htons(a->lifetime),
-		htons(a->instr_ptr), htons(a->flags)
+	uint16_t fields16[4] = {
+		htons(a->health), htons(a->energy), htons(a->instr_ptr),
+		htons(a->flags)
 	};
-	FWRITE(fields16, sizeof(*fields16), 5, dest, err);
+	FWRITE(fields16, sizeof(*fields16), 4, dest, err);
 	FWRITE(a->stomach, sizeof(*a->stomach), N_CHEMICALS, dest, err);
 	for (uint16_t i = 0; i < a->brain->ram_size; ++i) {
 		uint16_t cell = htons(a->ram[i]);
@@ -291,13 +290,12 @@ static struct animal *read_animal(struct brain **species,
 	++b->refcount;
 	struct animal *a = malloc(sizeof(struct animal) + b->ram_size * sizeof(uint16_t));
 	a->brain = b;
-	uint16_t fields16[5];
-	FREAD(fields16, sizeof(*fields16), 5, src, err);
+	uint16_t fields16[4];
+	FREAD(fields16, sizeof(*fields16), 4, src, err);
 	a->health = ntohs(fields16[0]);
 	a->energy = ntohs(fields16[1]);
-	a->lifetime = ntohs(fields16[2]);
-	a->instr_ptr = ntohs(fields16[3]);
-	a->flags = ntohs(fields16[4]);
+	a->instr_ptr = ntohs(fields16[2]);
+	a->flags = ntohs(fields16[3]);
 	FREAD(a->stomach, sizeof(*a->stomach), N_CHEMICALS, src, err);
 	for (uint16_t i = 0; i < b->ram_size; ++i) {
 		FREAD(&a->ram[i], sizeof(a->ram[i]), 1, src, err);

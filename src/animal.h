@@ -12,7 +12,6 @@ struct animal {
 	struct brain *brain;
 	uint16_t health;
 	uint16_t energy;
-	uint16_t lifetime;
 	uint16_t instr_ptr;
 	uint16_t flags;
 	uint8_t stomach[N_CHEMICALS];

@@ -211,13 +211,16 @@ const struct tile *get_relative(const struct grid *g,
 }
 void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 {
-	if (self->instr_ptr >= self->brain->code_size)
+	if (self->instr_ptr >= self->brain->code_size) {
+		self->energy = 0;
 		return;
+	}
 	struct instruction instr = self->brain->code[self->instr_ptr];
 	if (instr.opcode >= N_OPCODES) {
 		set_error(self, FINVAL_OPCODE);
 		goto error;
 	}
+	uint16_t op_cost = 1;
 	switch (instr.opcode) {
 /* General */
 	case OP_MOVE: {
@@ -399,7 +402,6 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 		else
 			targ->animal = animal_new(self->brain, energy - self->brain->ram_size);
 		targ->animal->health = g->health;
-		targ->animal->lifetime = g->lifetime;
 	} break;
 	case OP_STEP: {
 		uint16_t direction;
@@ -509,10 +511,10 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 	} goto error;
 	}
 	bits_off(self->flags, FERRORS);
-	sub_saturate(&self->energy, op_info[instr.opcode].energy);
+	op_cost = op_info[instr.opcode].energy;
 error:
+	sub_saturate(&self->energy, op_cost);
 	++self->instr_ptr;
-	--self->lifetime;
 }
 
 struct animal *animal_new(struct brain *brain, uint16_t energy)
@@ -535,7 +537,7 @@ struct animal *animal_mutant(struct brain *brain, uint16_t energy, struct grid *
 
 bool animal_is_dead(const struct animal *self)
 {
-	return self->lifetime == 0 || self->energy == 0 || self->health == 0;
+	return self->energy == 0 || self->health == 0;
 }
 
 void animal_spill_guts(const struct animal *self, struct tile *t)

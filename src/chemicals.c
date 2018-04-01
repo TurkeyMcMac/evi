@@ -11,7 +11,7 @@ const struct chemical_info chemical_table[N_CHEMICALS] = {
 	{"purple",      2,      0,         101,   10},
 	{"codea" ,	8,	0,	   120,	   4},
 	{"codeb" ,	8,	0,	   120,	   4},
-	{"energy",   1024,      0,         159,   11},
+	{"energy",    512,      0,         159,   11},
 	{"health",      0,      4,         160,   11},
 };
 

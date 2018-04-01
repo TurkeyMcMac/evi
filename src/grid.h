@@ -17,7 +17,7 @@ struct tile {
 struct grid {
 	struct brain *species;
 	uint16_t tick, drop_interval;
-	uint16_t health, lifetime;
+	uint16_t health;
 	uint32_t random;
 	uint32_t mutate_chance;
 	uint8_t drop_amount;

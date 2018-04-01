@@ -72,9 +72,8 @@ void save_grid(const char *file_name, long ticks)
 	struct grid *g = grid_new(50, 50);
 	g->mutate_chance = UINT32_MAX / 20;
 	g->health = 50;
-	g->lifetime = 30000;
-	g->drop_interval = 12;
-	g->drop_amount = 140;
+	g->drop_interval = 17;
+	g->drop_amount = 210;
 	g->random = rand();
 	struct brain *b = brain_new(0xdead, 1, array_len(code));
 	memcpy(b->code, code, sizeof(code));
@@ -86,12 +85,12 @@ void save_grid(const char *file_name, long ticks)
 			struct animal *a = animal_new(b, 10000);
 			tile_set_animal(t, a);
 			a->health = g->health;
-			a->lifetime = g->lifetime;
 			++i;
 		}
 	}
 	simulate_grid(g, ticks);
 	const char *err;
+	grid_print_species(g, 9, stdout);
 	if (write_grid(g, file, &err))
 		printf("%s; %s.\n", strerror(errno), err);
 	fclose(file);
@@ -124,6 +123,7 @@ void run_grid(const char *file_name, long ticks)
 		}
 	}
 	grid_print_species(g, 5, stderr);
+	grid_draw(g, stdout);
 	grid_free(g);
 	fclose(file);
 	exit(EXIT_SUCCESS);
