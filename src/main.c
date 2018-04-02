@@ -68,19 +68,23 @@ void canceller(int _)
 	running = 0;
 }
 
-void simulate_grid(struct grid *g, long ticks)
+void simulate_grid(struct grid *g, long ticks, char visual)
 {
-//	printf("\x1B[2J");
-	while (ticks--) {
-/*		printf("\x1B[%luA", g->height);
-		grid_draw(g, stdout);
-		fflush(stdout);
-		usleep(5000);
-*/		grid_update(g);
-	}
+	if (visual == 'y') {
+		printf("\x1B[2J");
+		while (ticks--) {
+			printf("\x1B[%luA", g->height);
+			grid_draw(g, stdout);
+			fflush(stdout);
+			usleep(5000);
+			grid_update(g);
+		}
+	} else
+		while (ticks--)
+			grid_update(g);
 }
 
-void save_grid(const char *file_name, long ticks)
+void save_grid(const char *file_name, long ticks, char visual)
 {
 	srand(time(NULL));
 	FILE *file = fopen(file_name, "wb");
@@ -107,7 +111,7 @@ void save_grid(const char *file_name, long ticks)
 			++i;
 		}
 	}
-	simulate_grid(g, ticks);
+	simulate_grid(g, ticks, visual);
 	const char *err;
 	grid_print_species(g, 9, stdout);
 	if (write_grid(g, file, &err))
@@ -117,7 +121,7 @@ void save_grid(const char *file_name, long ticks)
 	exit(EXIT_SUCCESS);
 }
 
-void run_grid(const char *file_name, long ticks)
+void run_grid(const char *file_name, long ticks, char visual)
 {
 	FILE *file = fopen(file_name, "rb");
 	if (!file) {
@@ -131,7 +135,7 @@ void run_grid(const char *file_name, long ticks)
 		exit(EXIT_FAILURE);
 	}
 	while (running) {
-		simulate_grid(g, ticks);
+		simulate_grid(g, ticks, visual);
 		if (g->species != NULL) {
 			freopen(file_name, "wb", file);
 			if (write_grid(g, file, &err))
@@ -141,8 +145,7 @@ void run_grid(const char *file_name, long ticks)
 			break;
 		}
 	}
-	grid_print_species(g, 5, stderr);
-	grid_draw(g, stdout);
+	grid_print_species(g, 9, stderr);
 	grid_free(g);
 	fclose(file);
 	exit(EXIT_SUCCESS);
@@ -153,13 +156,13 @@ int main(int argc, char *argv[])
 	struct sigaction cancel_handler;
 	cancel_handler.sa_handler = canceller;
 	sigaction(SIGINT, &cancel_handler, NULL);
-	long ticks = strtol(argv[3], NULL, 10);
+	long ticks = strtol(argv[4], NULL, 10);
 	switch (argv[1][0]) {
 	case 'w':
-		save_grid(argv[2], ticks);
+		save_grid(argv[3], ticks, argv[2][0]);
 		break;
 	case 'r':
-		run_grid(argv[2], ticks);
+		run_grid(argv[3], ticks, argv[2][0]);
 		break;
 	default:
 		break;
