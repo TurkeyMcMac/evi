@@ -132,8 +132,9 @@ static int jump(struct animal *a, uint16_t dest)
 		if (condition) { \
 			if (jump(self, dest)) \
 				goto error; \
-			else \
-				return; \
+			else { \
+				goto jumped; \
+			} \
 		} \
 	} break
 
@@ -220,7 +221,6 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 		set_error(self, FINVAL_OPCODE);
 		goto error;
 	}
-	uint16_t op_cost = 1;
 	switch (instr.opcode) {
 /* General */
 	case OP_MOVE: {
@@ -510,11 +510,15 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 		set_error(self, FINVAL_OPCODE);
 	} goto error;
 	}
-	bits_off(self->flags, FERRORS);
-	op_cost = op_info[instr.opcode].energy;
-error:
-	sub_saturate(&self->energy, op_cost);
 	++self->instr_ptr;
+jumped:
+	bits_off(self->flags, FERRORS);
+	sub_saturate(&self->energy, op_info[instr.opcode].energy);
+	return;
+error:
+	++self->instr_ptr;
+	sub_saturate(&self->energy, 1);
+	return;
 }
 
 struct animal *animal_new(struct brain *brain, uint16_t energy)
