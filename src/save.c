@@ -322,32 +322,3 @@ static struct animal *read_animal(struct brain **species,
 	}
 	return a;
 }
-
-/*
-save version number: 4
-
-number of species: 4
-(species) {
-	irrelevant data: TBD
-	code size: 2
-	code: code size * {
-		opcode and format: 2
-		left arg: 2
-		right arg: 2
-	}
-}
-
-width: 4
-height: 4
-(tiles) {
-	animal offset: 4
-	chemicals: N_CHEMICALS
-} * width * height
-
-(animals) {
-	species number: 4
-	irrelevant data: TBD
-	RAM: RAM size * 2
-}
-
- * */
