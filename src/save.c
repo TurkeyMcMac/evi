@@ -281,7 +281,7 @@ static struct brain *read_brain(FILE *src, const char **err)
 {
 	uint16_t fields16[3];
 	FREAD(fields16, sizeof(*fields16), 3, src, err);
-	struct brain *b = malloc(sizeof(struct brain) +
+	struct brain *b = malloc(offsetof(struct brain, code) +
 			ntohs(fields16[2]) * sizeof(struct instruction));
 	b->signature = ntohs(fields16[0]);
 	b->ram_size = ntohs(fields16[1]);
@@ -307,7 +307,7 @@ static struct animal *read_animal(struct brain **species,
 	}
 	struct brain *b = species[brain_num];
 	++b->refcount;
-	struct animal *a = malloc(sizeof(struct animal) + b->ram_size * sizeof(uint16_t));
+	struct animal *a = malloc(offsetof(struct animal, ram) + b->ram_size * sizeof(uint16_t));
 	a->brain = b;
 	uint16_t fields16[4];
 	FREAD(fields16, sizeof(*fields16), 4, src, err);

@@ -67,7 +67,7 @@ static const struct opcode_info nop_info = {"NOP"};
 
 struct brain *brain_new(uint16_t signature, uint16_t ram_size, uint16_t code_size)
 {
-	struct brain *self = malloc(sizeof(struct brain) + code_size * sizeof(struct instruction));
+	struct brain *self = malloc(offsetof(struct brain, code) + code_size * sizeof(struct instruction));
 	self->next = NULL;
 	self->refcount = 0;
 	self->signature = signature;
@@ -79,8 +79,8 @@ struct brain *brain_new(uint16_t signature, uint16_t ram_size, uint16_t code_siz
 
 static struct brain *copy_brain(const struct brain *b)
 {
-	struct brain *c = malloc(sizeof(*b) + b->code_size * sizeof(*b->code));
-	memcpy(c, b, sizeof(*b) + b->code_size * sizeof(*b->code));
+	struct brain *c = malloc(offsetof(struct brain, code) + b->code_size * sizeof(*b->code));
+	memcpy(c, b, offsetof(struct brain, code) + b->code_size * sizeof(*b->code));
 	c->refcount = 0;
 	c->next = NULL;
 	return c;
@@ -88,8 +88,8 @@ static struct brain *copy_brain(const struct brain *b)
 
 static struct brain *copy_shift_brain(const struct brain *b, uint16_t i, uint16_t n)
 {
-	struct brain *c = malloc(sizeof(*b) + (b->code_size + n) * sizeof(*b->code));
-	memcpy(c, b, sizeof(*b) + i * sizeof(*b->code));
+	struct brain *c = malloc(offsetof(struct brain, code) + (b->code_size + n) * sizeof(*b->code));
+	memcpy(c, b, offsetof(struct brain, code) + i * sizeof(*b->code));
 	memcpy(&c->code[i + n], &b->code[i], b->code_size - i);
 	c->refcount = 0;
 	c->next = NULL;
@@ -98,8 +98,8 @@ static struct brain *copy_shift_brain(const struct brain *b, uint16_t i, uint16_
 
 static struct brain *copy_remove_brain(const struct brain *b, uint16_t i, uint16_t n)
 {
-	struct brain *c = malloc(sizeof(*b) + (b->code_size - n) * sizeof(*b->code));
-	memcpy(c, b, sizeof(*b) + i * sizeof(*b->code));
+	struct brain *c = malloc(offsetof(struct brain, code) + (b->code_size - n) * sizeof(*b->code));
+	memcpy(c, b, offsetof(struct brain, code) + i * sizeof(*b->code));
 	memcpy(&c->code[i], &b->code[i + n], b->code_size - i - n);
 	c->refcount = 0;
 	c->next = NULL;

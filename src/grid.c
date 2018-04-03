@@ -30,7 +30,8 @@ void tile_set_animal(struct tile *self, struct animal *a)
 
 struct grid *grid_new(size_t width, size_t height)
 {
-	struct grid *self = calloc(1, sizeof(struct grid) + width * height * sizeof(struct tile));
+	struct grid *self = calloc(1, offsetof(struct grid, tiles) +
+		width * height * sizeof(struct tile));
 	self->width = width;
 	self->height = height;
 	self->drop_interval = 1;

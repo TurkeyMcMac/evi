@@ -542,7 +542,7 @@ error:
 
 struct animal *animal_new(struct brain *brain, uint16_t energy)
 {
-	struct animal *self = malloc(sizeof(struct animal) + brain->ram_size * sizeof(uint16_t));
+	struct animal *self = malloc(offsetof(struct animal, ram) + brain->ram_size * sizeof(uint16_t));
 	++brain->refcount;
 	self->brain = brain;
 	self->energy = energy;
