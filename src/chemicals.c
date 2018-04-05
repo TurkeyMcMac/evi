@@ -21,7 +21,7 @@
 
 const struct chemical_info chemical_table[N_CHEMICALS] = {
 /*	 Name      Energy  Health  Evaporation  Flow */
-	{"sludge",      0,      0,         128,    5},
+	{"sludge",      0,     -1,         128,   15},
 	{"red"   ,      2,      0,          99,    6},
 	{"green" ,      2,      0,          98,    7},
 	{"blue"  ,      2,      0,          97,    6},
@@ -30,7 +30,7 @@ const struct chemical_info chemical_table[N_CHEMICALS] = {
 	{"purple",      2,      0,         101,   10},
 	{"codea" ,	8,	0,	   120,	   4},
 	{"codeb" ,	8,	0,	   120,	   4},
-	{"energy",    512,      0,         159,   11},
+	{"energy",    724,      0,         159,   11},
 	{"health",      0,      4,         160,   11},
 };
 

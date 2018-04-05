@@ -240,6 +240,7 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 		set_error(self, FINVAL_OPCODE);
 		goto error;
 	}
+	sub_saturate(&self->energy, grid_get_unck(g, x, y)->chemicals[CHEM_SLUDGE] / 2);
 	switch (instr.opcode) {
 /* General */
 	case OP_MOVE: {
@@ -292,7 +293,7 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 		if (read_from(self, instr.l_fmt, instr.left, &dest)
 		 || jump(self, dest))
 			goto error;
-	} return;
+	} goto jumped;
 	case OP_CMPR: {
 		uint16_t left, right;
 		if (read_from(self, instr.l_fmt, instr.left, &left)
@@ -472,10 +473,15 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 			set_error(self, FINVAL_ARG);
 			goto error;
 		}
+		if (self->stomach[CHEM_SLUDGE] >= 254) {
+			set_error(self, FFULL);
+			goto error;
+		}
 		if (self->stomach[c1] > 0 && self->stomach[c2] > 0) {
 			--self->stomach[c1];
 			--self->stomach[c2];
 			++self->stomach[combine_chemicals(c1, c2)];
+			++self->stomach[CHEM_SLUDGE];
 		} else {
 			set_error(self, FEMPTY);
 			goto error;
@@ -496,7 +502,15 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 			amount = self->stomach[chem];
 		}
 		self->stomach[chem] -= amount;
-		add_saturate(&self->energy, amount * chemical_table[chem].energy);
+		int16_t energy = amount * chemical_table[chem].energy,
+			 health = amount * chemical_table[chem].health;
+		if (chem == CHEM_SLUDGE) {
+			add_saturate(&self->energy, energy);
+			sub_saturate(&self->health, -health);
+		} else {
+			add_saturate(&self->energy, energy);
+			add_saturate(&self->health, health);
+		}
 	} break;
 	case OP_GCHM: {
 		uint16_t chem, *dest = write_dest(self, instr.l_fmt, instr.left);
