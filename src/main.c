@@ -103,7 +103,8 @@ void save_grid(const char *file_name, long ticks, char visual)
 	b->next = g->species;
 	g->species = b;
 	for (size_t i = 0; i < N_ANIMALS; ) {
-		struct tile *t = grid_get_unck(g, rand() % g->width, rand() % g->height);
+		struct tile *t =
+			grid_get_unck(g, rand() % g->width, rand() % g->height);
 		if (!t->animal) {
 			struct animal *a = animal_new(b, 10000);
 			tile_set_animal(t, a);
@@ -139,7 +140,8 @@ void run_grid(const char *file_name, long ticks, char visual)
 		if (g->species != NULL) {
 			freopen(file_name, "wb", file);
 			if (write_grid(g, file, &err))
-				fprintf(stderr, "%s; %s.\n", strerror(errno), err);
+				fprintf(stderr, "%s; %s.\n",
+					strerror(errno), err);
 		} else {
 			fprintf(stderr, "Extinct!\n");
 			break;

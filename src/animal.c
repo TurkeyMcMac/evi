@@ -27,7 +27,8 @@
 
 #define bits_on(bitset, bits) ((bitset) |= (bits))
 #define bits_off(bitset, bits) ((bitset) &= ~(bits))
-#define FERRORS (FINVAL_ARG | FROOB | FCOOB | FINVAL_OPCODE | FEMPTY | FFULL | FBLOCKED)
+#define FERRORS \
+	(FINVAL_ARG | FROOB | FCOOB | FINVAL_OPCODE | FEMPTY | FFULL | FBLOCKED)
 
 static void sub_saturate(uint16_t *dest, uint16_t src)
 {
@@ -60,7 +61,10 @@ enum {
 	bits_on(paste2(_##a##_line_, __LINE__)->flags, (errs)); \
 } while (0)
 
-static int read_from(struct animal *a, uint_fast8_t fmt, uint16_t value, uint16_t *dest)
+static int read_from(struct animal *a,
+	uint_fast8_t fmt,
+	uint16_t value,
+	uint16_t *dest)
 {
 	switch (fmt) {
 	case ARG_FMT_IMMEDIATE:
@@ -75,7 +79,8 @@ static int read_from(struct animal *a, uint_fast8_t fmt, uint16_t value, uint16_
 		}
 		break;
 	case ARG_FMT_FOLLOW_TWICE:
-		if (value < a->brain->ram_size && a->ram[value] < a->brain->ram_size)
+		if (value < a->brain->ram_size
+		 && a->ram[value] < a->brain->ram_size)
 			*dest = a->ram[a->ram[value]];
 		else {
 			set_error(a, FROOB);
@@ -100,7 +105,8 @@ static uint16_t *write_dest(struct animal *a, uint_fast8_t fmt, uint16_t value)
 			return NULL;
 		}
 	case ARG_FMT_FOLLOW_TWICE:
-		if (value < a->brain->ram_size && a->ram[value] < a->brain->ram_size) {
+		if (value < a->brain->ram_size
+		 && a->ram[value] < a->brain->ram_size) {
 			return &a->ram[a->ram[value]];
 		} else {
 			set_error(a, FROOB);
@@ -112,7 +118,8 @@ static uint16_t *write_dest(struct animal *a, uint_fast8_t fmt, uint16_t value)
 	}
 }
 
-#define get_arg(self, offset) ((self)->brain->code[(self)->instr_ptr + (offset)])
+#define get_arg(self, offset) \
+	((self)->brain->code[(self)->instr_ptr + (offset)])
 
 static int jump(struct animal *a, uint16_t dest)
 {
@@ -127,7 +134,8 @@ static int jump(struct animal *a, uint16_t dest)
 
 #define OP_CASE_NUMERIC_BINARY(name, action) \
 	case OP_##name: { \
-		uint16_t temp, *dest = write_dest(self, instr.l_fmt, instr.left); \
+		uint16_t temp, \
+			 *dest = write_dest(self, instr.l_fmt, instr.left); \
 		if (!dest || read_from(self, instr.r_fmt, instr.right, &temp)) \
 			break; \
 		*dest action##= temp; \
@@ -166,7 +174,9 @@ enum {
 	DIRECTION_HERE,
 };
 
-static struct tile *in_direction(struct grid *g, uint16_t direction, size_t x, size_t y)
+static struct tile *in_direction(struct grid *g,
+	uint16_t direction,
+	size_t x, size_t y)
 {
 	switch (direction) {
 	case DIRECTION_UP:
@@ -240,7 +250,8 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 		set_error(self, FINVAL_OPCODE);
 		goto error;
 	}
-	sub_saturate(&self->energy, grid_get_unck(g, x, y)->chemicals[CHEM_SLUDGE] / 2);
+	sub_saturate(&self->energy, grid_get_unck(g, x, y)
+		->chemicals[CHEM_SLUDGE] / 2);
 	switch (instr.opcode) {
 /* General */
 	case OP_MOVE: {
@@ -251,7 +262,8 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 	case OP_XCHG: {
 		uint16_t temp, *destl, *destr;
 		if ((destl = write_dest(self, instr.l_fmt, instr.left)) == NULL
-		 || (destr = write_dest(self, instr.r_fmt, instr.right)) == NULL)
+		 || (destr = write_dest(self, instr.r_fmt, instr.right)) == NULL
+		)
 			goto error;
 		temp = *destl;
 		*destl = *destr;
@@ -307,7 +319,8 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 			bits_off(self->flags, FUGREATER | FEQUAL);
 		} else {
 			bits_on(self->flags, FEQUAL);
-			bits_off(self->flags, FULESSER | FUGREATER | FSLESSER | FSGREATER);
+			bits_off(self->flags, FULESSER | FUGREATER | FSLESSER |
+				FSGREATER);
 			break;
 		}
 		if ((int16_t)left > (int16_t)right) {
@@ -378,8 +391,10 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 		*dest = look->chemicals[id];
 	} break;
 	case OP_LNML: {
-		uint16_t x_and_y, *dest = write_dest(self, instr.l_fmt, instr.left);
-		if (!dest || read_from(self, instr.r_fmt, instr.right, &x_and_y))
+		uint16_t x_and_y,
+			 *dest = write_dest(self, instr.l_fmt, instr.left);
+		if (!dest
+		 || read_from(self, instr.r_fmt, instr.right, &x_and_y))
 			goto error;
 		const struct tile *look = get_relative(g, x_and_y, x, y);
 		if (!look) {
@@ -418,9 +433,11 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 		self->stomach[CHEM_CODEA] -= codea;
 		self->stomach[CHEM_CODEB] -= codeb;
 		if (grid_next_mutant(g))
-			targ->animal = animal_mutant(self->brain, energy - self->brain->ram_size, g);
+			targ->animal = animal_mutant(self->brain,
+				energy - self->brain->ram_size, g);
 		else
-			targ->animal = animal_new(self->brain, energy - self->brain->ram_size);
+			targ->animal = animal_new(self->brain,
+				energy - self->brain->ram_size);
 		targ->animal->health = g->health;
 	} break;
 	case OP_STEP: {
@@ -513,7 +530,8 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 		}
 	} break;
 	case OP_GCHM: {
-		uint16_t chem, *dest = write_dest(self, instr.l_fmt, instr.left);
+		uint16_t chem,
+			 *dest = write_dest(self, instr.l_fmt, instr.left);
 		if (!dest || read_from(self, instr.r_fmt, instr.right, &chem))
 			goto error;
 		if (chem >= N_CHEMICALS) {
@@ -532,10 +550,10 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 	case OP_GNRG: {
 		uint16_t *dest = write_dest(self, instr.l_fmt, instr.left);
 		if (dest)
-			*dest = self->energy - GNRG_COST; /* We don't have to deal with underflow
-			                                     because if it occurs, the animal will
-							     die immediately before being able to
-							     react. */
+			*dest = self->energy - GNRG_COST;
+	       		/* We don't have to deal with underflow because if it
+			 * occurs, the animal will die immediately before being
+			 * able to react. */
 		else
 			goto error;
 	} break;
@@ -556,7 +574,8 @@ error:
 
 struct animal *animal_new(struct brain *brain, uint16_t energy)
 {
-	struct animal *self = malloc(offsetof(struct animal, ram) + brain->ram_size * sizeof(uint16_t));
+	struct animal *self = malloc(offsetof(struct animal, ram)
+		+ brain->ram_size * sizeof(uint16_t));
 	++brain->refcount;
 	self->brain = brain;
 	self->energy = energy;
@@ -567,7 +586,9 @@ struct animal *animal_new(struct brain *brain, uint16_t energy)
 	return self;
 }
 
-struct animal *animal_mutant(struct brain *brain, uint16_t energy, struct grid *g)
+struct animal *animal_mutant(struct brain *brain,
+	uint16_t energy,
+	struct grid *g)
 {
 	return animal_new(brain_mutate(brain, g), energy);
 }

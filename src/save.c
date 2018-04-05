@@ -47,7 +47,9 @@
 #define STORED_TILE_SIZE (sizeof(uint32_t) + N_CHEMICALS)
 
 static int write_brain(const struct brain *b, FILE *dest, const char **err);
-static int write_tile(const struct tile *t, uint32_t animal_off, FILE *dest, const char **err);
+static int write_tile(const struct tile *t,
+	uint32_t animal_off, FILE *dest,
+	const char **err);
 static int write_animal(const struct animal *a, FILE *dest, const char **err);
 
 int write_grid(struct grid *g, FILE *dest, const char **err)
@@ -134,8 +136,9 @@ struct grid *read_grid(FILE *src, const char **err)
 	uint32_t version;
 	FREAD(&version, sizeof(version), 1, src, err);
 	if (ntohl(version) != SERIALIZATION_VERSION) {
-		errno = EPROTONOSUPPORT; /* I don't think that this is what EPROTONOSUPPORT is
-					    meant for, but it's close enough. */
+		errno = EPROTONOSUPPORT; /* I don't think that this is what
+					  * EPROTONOSUPPORT is meant for, but
+					  * it's close enough. */
 		*err = "format version mismatch";
 		return NULL;
 	}
@@ -164,8 +167,8 @@ struct grid *read_grid(FILE *src, const char **err)
 	}
 	uint32_t dims[2];
 	FREAD(dims, sizeof(*dims), 2, src, err);
-	struct grid *g = grid_new(ntohl(dims[0]), ntohl(dims[1])); /* TODO: Use a function with less
-								      built-in initialization. */
+	// TODO: Use a function with less built-in initialization.
+	struct grid *g = grid_new(ntohl(dims[0]), ntohl(dims[1]));
 	g->tick = ntohs(fields16[0]);
 	g->drop_interval = ntohs(fields16[1]);
 	g->health = ntohs(fields16[2]);
@@ -179,12 +182,15 @@ struct grid *read_grid(FILE *src, const char **err)
 	for (size_t i = 0; i < g->width * g->height; ++i) {
 		uint32_t animal;
 		FREAD(&animal, sizeof(animal), 1, src, err);
-		FREAD(g->tiles[i].chemicals, sizeof(*g->tiles[i].chemicals), N_CHEMICALS, src, err);
+		FREAD(g->tiles[i].chemicals, sizeof(*g->tiles[i].chemicals),
+			N_CHEMICALS, src, err);
 		next_tile += STORED_TILE_SIZE;
 		if (animal) {
-			if (fseek(src, ntohl(animal) - STORED_TILE_SIZE, SEEK_CUR))
+			if (fseek(src, ntohl(animal) - STORED_TILE_SIZE,
+					SEEK_CUR))
 				FAIL_PTR(fseek, err);
-			struct animal *a = read_animal(species, n_species, src, err);
+			struct animal *a =
+				read_animal(species, n_species, src, err);
 			if (!a) {
 				return NULL;
 			}
@@ -203,7 +209,9 @@ struct grid *read_grid(FILE *src, const char **err)
 	return g;
 }
 
-static int write_instruction(const struct instruction *i, FILE *dest, const char **err)
+static int write_instruction(const struct instruction *i,
+	FILE *dest,
+	const char **err)
 {
 	uint8_t op[2];
 	op[0] = i->opcode;
@@ -214,7 +222,9 @@ static int write_instruction(const struct instruction *i, FILE *dest, const char
 	return 0;
 }
 
-static int read_instruction(struct instruction *dest, FILE *src, const char **err)
+static int read_instruction(struct instruction *dest,
+	FILE *src,
+	const char **err)
 {
 	uint8_t op[2];
 	if (fread(op, sizeof(*op), 2, src) != 2) {
@@ -244,7 +254,9 @@ static int read_instruction(struct instruction *dest, FILE *src, const char **er
 
 static int write_brain(const struct brain *b, FILE *dest, const char **err)
 {
-	uint16_t header[3] = {htons(b->signature), htons(b->ram_size), htons(b->code_size)};
+	uint16_t header[3] = {
+		htons(b->signature), htons(b->ram_size), htons(b->code_size)
+	};
 	FWRITE(header, sizeof(*header), 3, dest, err);
 	for (uint16_t i = 0; i < b->code_size; ++i) {
 		if (write_instruction(&b->code[i], dest, err))
@@ -253,7 +265,10 @@ static int write_brain(const struct brain *b, FILE *dest, const char **err)
 	return 0;
 }
 
-static int write_tile(const struct tile *t, uint32_t animal_off, FILE *dest, const char **err)
+static int write_tile(const struct tile *t,
+	uint32_t animal_off,
+	FILE *dest,
+	const char **err)
 {
 	animal_off = htonl(animal_off);
 	FWRITE(&animal_off, sizeof(animal_off), 1, dest, err);
@@ -307,7 +322,8 @@ static struct animal *read_animal(struct brain **species,
 	}
 	struct brain *b = species[brain_num];
 	++b->refcount;
-	struct animal *a = malloc(offsetof(struct animal, ram) + b->ram_size * sizeof(uint16_t));
+	struct animal *a = malloc(offsetof(struct animal, ram)
+		+ b->ram_size * sizeof(uint16_t));
 	a->brain = b;
 	uint16_t fields16[4];
 	FREAD(fields16, sizeof(*fields16), 4, src, err);
