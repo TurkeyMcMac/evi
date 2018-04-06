@@ -30,7 +30,8 @@
 struct tile {
 	struct animal *animal;
 	uint8_t chemicals[N_CHEMICALS];
-	bool newly_occupied;
+	bool newly_occupied : 1;
+	bool is_solid : 1;
 };
 
 struct grid {
@@ -45,6 +46,8 @@ struct grid {
 };
 
 void tile_set_animal(struct tile *self, struct animal *a);
+
+void tile_clear_animal(struct tile *self);
 
 struct grid *grid_new(size_t width, size_t height);
 

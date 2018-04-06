@@ -102,10 +102,18 @@ void save_grid(const char *file_name, long ticks, char visual)
 	memcpy(b->code, code, sizeof(code));
 	b->next = g->species;
 	g->species = b;
+	grid_get(g, 23,  0)->is_solid = true;
+	grid_get(g, 24,  0)->is_solid = true;
+	grid_get(g,  0, 23)->is_solid = true;
+	grid_get(g,  0, 24)->is_solid = true;
+	grid_get(g, 49, 23)->is_solid = true;
+	grid_get(g, 49, 24)->is_solid = true;
+	grid_get(g, 23, 49)->is_solid = true;
+	grid_get(g, 24, 49)->is_solid = true;
 	for (size_t i = 0; i < N_ANIMALS; ) {
 		struct tile *t =
 			grid_get_unck(g, rand() % g->width, rand() % g->height);
-		if (!t->animal) {
+		if (!t->is_solid) {
 			struct animal *a = animal_new(b, 10000);
 			tile_set_animal(t, a);
 			a->health = g->health;

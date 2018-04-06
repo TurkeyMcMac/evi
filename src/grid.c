@@ -26,6 +26,13 @@ void tile_set_animal(struct tile *self, struct animal *a)
 {
 	self->animal = a;
 	self->newly_occupied = true;
+	self->is_solid = true;
+}
+
+void tile_clear_animal(struct tile *self)
+{
+	self->animal = NULL;
+	self->is_solid = false;
 }
 
 struct grid *grid_new(size_t width, size_t height)
@@ -95,6 +102,17 @@ static void print_color(const struct tile *t, FILE *dest)
 
 #define EMPTY_GRAY "237"
 
+static void draw_tile(const struct tile *t, FILE *dest)
+{
+	print_color(t, dest);
+	if (t->animal)
+		fprintf(dest, "\x1B[37m[]\x1B[38;5;"EMPTY_GRAY"m");
+	else if (t->is_solid)
+		fprintf(dest, "\x1B[7m[]\x1B[27m");
+	else
+		fprintf(dest, "[]");
+}
+
 void grid_draw(const struct grid *self, FILE *dest)
 {
 	fprintf(dest, "\x1B[38;5;"EMPTY_GRAY"m");
@@ -102,12 +120,7 @@ void grid_draw(const struct grid *self, FILE *dest)
 	for (y = 0; y < self->height; ++y) {
 		for (x = 0; x < self->width; ++x) {
 			const struct tile *t = grid_get_const_unck(self, x, y);
-			print_color(t, dest);
-			if (t->animal)
-				fprintf(dest,
-					"\x1B[37m[]\x1B[38;5;"EMPTY_GRAY"m");
-			else
-				fprintf(dest, "[]");
+			draw_tile(t, dest);
 		}
 		fprintf(dest, "\x1B[49m\n");
 	}
@@ -197,7 +210,7 @@ static void update_tiles(struct grid *g)
 				if (animal_is_dead(a)) {
 					animal_spill_guts(a, t);
 					animal_free(a);
-					t->animal = NULL;
+					tile_clear_animal(t);
 				} else
 					animal_step(a, g, x, y);
 			}

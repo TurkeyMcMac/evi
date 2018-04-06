@@ -416,7 +416,7 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 			set_error(self, FINVAL_ARG);
 			goto error;
 		}
-		if (!targ || targ->animal) {
+		if (!targ || targ->is_solid) {
 			set_error(self, FBLOCKED);
 			goto error;
 		}
@@ -433,11 +433,11 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 		self->stomach[CHEM_CODEA] -= codea;
 		self->stomach[CHEM_CODEB] -= codeb;
 		if (grid_next_mutant(g))
-			targ->animal = animal_mutant(self->brain,
-				energy - self->brain->ram_size, g);
+			tile_set_animal(targ, animal_mutant(self->brain,
+				energy - self->brain->ram_size, g));
 		else
-			targ->animal = animal_new(self->brain,
-				energy - self->brain->ram_size);
+			tile_set_animal(targ, animal_new(self->brain,
+				energy - self->brain->ram_size));
 		targ->animal->health = g->health;
 	} break;
 	case OP_STEP: {
@@ -449,16 +449,12 @@ void animal_step(struct animal *self, struct grid *g, size_t x, size_t y)
 			set_error(self, FINVAL_ARG);
 			goto error;
 		}
-		if (!dest) {
-			set_error(self, FBLOCKED);
-			goto error;
-		}
-		if (dest->animal) {
+		if (!dest || dest->is_solid) {
 			set_error(self, FBLOCKED);
 			goto error;
 		}
 		tile_set_animal(dest, self);
-		grid_get_unck(g, x, y)->animal = NULL;
+		tile_clear_animal(grid_get_unck(g, x, y));
 	} break;
 	case OP_ATTK: {
 		uint16_t direction, power;

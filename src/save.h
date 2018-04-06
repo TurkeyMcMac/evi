@@ -28,7 +28,7 @@
 #if N_CHEMICALS != 11
 	#error "Be sure to change the version number when changing N_CHEMICALS!"
 #endif
-#define SERIALIZATION_VERSION 3
+#define SERIALIZATION_VERSION 4
 
 #define FAIL(fn, e) do { *(e) = #fn " failed"; return RETURN_ERR; } while (0)
 

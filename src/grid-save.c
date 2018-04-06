@@ -88,7 +88,7 @@ int grid_write(struct grid *g, FILE *dest, const char **err)
 			FTELL(&next_animal, dest, err);
 			FSEEK(dest, next_tile, SEEK_SET, err);
 		} else {
-			if (write_tile(t, 0, dest, err))
+			if (write_tile(t, t->is_solid, dest, err))
 				return -1;
 			next_tile += STORED_TILE_SIZE;
 		}
@@ -153,19 +153,22 @@ struct grid *grid_read(FILE *src, const char **err)
 		FREAD(g->tiles[i].chemicals, sizeof(*g->tiles[i].chemicals),
 			N_CHEMICALS, src, err);
 		next_tile += STORED_TILE_SIZE;
-		if (animal) {
-			FSEEK(src,
-				ntohl(animal) - STORED_TILE_SIZE,
-				SEEK_CUR, err);
+		animal = ntohl(animal);
+		if (animal > 1) {
+			FSEEK(src, animal - STORED_TILE_SIZE, SEEK_CUR, err);
 			struct animal *a =
 				animal_read(species, n_species, src, err);
 			if (!a) {
 				return NULL;
 			}
 			g->tiles[i].animal = a;
+			g->tiles[i].is_solid = true;
 			FSEEK(src, next_tile, SEEK_SET, err);
-		} else
+		} else {
 			g->tiles[i].animal = NULL;
+			g->tiles[i].is_solid = animal;
+		}
+		g->tiles[i].newly_occupied = false;
 	}
 
 	for (size_t i = 0; i < n_species; ++i) {
