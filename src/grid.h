@@ -67,6 +67,10 @@ bool grid_next_mutant(struct grid *self);
 
 void grid_update(struct grid *self);
 
+int grid_write(struct grid *g, FILE *dest, const char **err);
+
+struct grid *grid_read(FILE *src, const char **err);
+
 void grid_free(struct grid *self);
 
 #endif /* Header guard */

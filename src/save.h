@@ -21,7 +21,8 @@
 
 #define _SAVE_H
 
-#include "grid.h"
+#include "chemicals.h"
+#include <errno.h>
 #include <stdio.h>
 
 #if N_CHEMICALS != 11
@@ -29,8 +30,33 @@
 #endif
 #define SERIALIZATION_VERSION 3
 
-int write_grid(struct grid *g, FILE *dest, const char **err);
+#define FAIL(fn, e) do { *(e) = #fn " failed"; return RETURN_ERR; } while (0)
 
-struct grid *read_grid(FILE *src, const char **err);
+#define FWRITE(src, size, nmemb, dest, e) do { \
+	if (fwrite((src), (size), (nmemb), (dest)) != (nmemb)) \
+		FAIL(fwrite, (e)); \
+} while (0)
+
+#define FTELL(dest, src, e) do { \
+	*(dest) = ftell(src); \
+	if (*(dest) == -1) \
+		FAIL(ftell, (e)); \
+} while (0)
+
+#define FSEEK(dest, location, whence, e) do { \
+	if (fseek((dest), (location), (whence))) \
+		FAIL(fseek, (e)); \
+} while (0)
+
+#define FREAD(dest, size, nmemb, src, e) do { \
+	if (fread((dest), (size), (nmemb), (src)) != (nmemb)) { \
+		if (feof(src)) { \
+			errno = EPROTO; \
+			*(e) = "unexpected end of file"; \
+			return RETURN_ERR; \
+		} \
+		FAIL(fread, (e)); \
+	} \
+} while (0)
 
 #endif /* Header guard */

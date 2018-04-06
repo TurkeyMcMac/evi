@@ -27,7 +27,8 @@
 
 #define GNRG_COST 1
 
-#define SLLIST_FOR_EACH(list, item) for ((item) = (list); (item) != NULL; (item) = (item)->next)
+#define SLLIST_FOR_EACH(list, item) \
+	for ((item) = (list); (item) != NULL; (item) = (item)->next)
 
 struct instruction {
 	uint8_t opcode;
@@ -45,13 +46,19 @@ struct brain {
 	struct instruction code[];
 };
 
-struct brain *brain_new(uint16_t signature, uint16_t ram_size, uint16_t code_size);
+struct brain *brain_new(uint16_t signature,
+	uint16_t ram_size,
+	uint16_t code_size);
 
 struct grid;
 
 struct brain *brain_mutate(const struct brain *self, struct grid *g);
 
 void brain_print(const struct brain *self, FILE *dest);
+
+int brain_write(const struct brain *self, FILE *dest, const char **err);
+
+struct brain *brain_read(FILE *src, const char **err);
 
 enum opcode {
 /* General */

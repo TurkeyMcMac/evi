@@ -115,7 +115,7 @@ void save_grid(const char *file_name, long ticks, char visual)
 	simulate_grid(g, ticks, visual);
 	const char *err;
 	grid_print_species(g, 9, stdout);
-	if (write_grid(g, file, &err))
+	if (grid_write(g, file, &err))
 		printf("%s; %s.\n", strerror(errno), err);
 	fclose(file);
 	grid_free(g);
@@ -130,7 +130,7 @@ void run_grid(const char *file_name, long ticks, char visual)
 		exit(EXIT_FAILURE);
 	}
 	const char *err;
-	struct grid *g = read_grid(file, &err);
+	struct grid *g = grid_read(file, &err);
 	if (!g) {
 		printf("%s; %s.\n", strerror(errno), err);
 		exit(EXIT_FAILURE);
@@ -139,7 +139,7 @@ void run_grid(const char *file_name, long ticks, char visual)
 		simulate_grid(g, ticks, visual);
 		if (g->species != NULL) {
 			freopen(file_name, "wb", file);
-			if (write_grid(g, file, &err))
+			if (grid_write(g, file, &err))
 				fprintf(stderr, "%s; %s.\n",
 					strerror(errno), err);
 		} else {
