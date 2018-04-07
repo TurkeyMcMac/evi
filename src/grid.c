@@ -258,6 +258,39 @@ void grid_update(struct grid *self)
 	++self->tick;
 }
 
+void grid_set_solid_unck(struct grid *self,
+	size_t x, size_t y,
+	size_t width, size_t height,
+	bool is_solid)
+{
+	for (size_t iy = y; iy < y + height; ++iy) {
+		for (size_t ix = x; ix < x + width; ++ix) {
+			struct tile *t = grid_get_unck(self, ix, iy);
+			t->is_solid = is_solid;
+			if (t->animal) {
+				animal_free(t->animal);
+				t->animal = NULL;
+			}
+		}
+	}
+}
+
+void grid_set_solid(struct grid *self,
+	size_t x, size_t y,
+	size_t width, size_t height,
+	bool is_solid)
+{
+	if (x >= self->width)
+		x = self->width - 1;
+	if (x + width > self->width)
+		width = self->width - x;
+	if (y >= self->height)
+		y = self->height - 1;
+	if (y + height > self->height)
+		height = self->height - y;
+	grid_set_solid_unck(self, x, y, width, height, is_solid);
+}
+
 void grid_free(struct grid *self)
 {
 	for (size_t i = 0; i < self->width * self->height; ++i) {

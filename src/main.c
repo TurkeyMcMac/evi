@@ -59,6 +59,7 @@ static const enum chemical spring_colors[] = {CHEM_RED, CHEM_GREEN, CHEM_BLUE};
 #define array_len(arr) (sizeof((arr)) / sizeof(*(arr)))
 
 #define N_ANIMALS 100
+#define N_ROCKS 45
 
 volatile sig_atomic_t running = 1;
 
@@ -102,14 +103,11 @@ void save_grid(const char *file_name, long ticks, char visual)
 	memcpy(b->code, code, sizeof(code));
 	b->next = g->species;
 	g->species = b;
-	grid_get(g, 23,  0)->is_solid = true;
-	grid_get(g, 24,  0)->is_solid = true;
-	grid_get(g,  0, 23)->is_solid = true;
-	grid_get(g,  0, 24)->is_solid = true;
-	grid_get(g, 49, 23)->is_solid = true;
-	grid_get(g, 49, 24)->is_solid = true;
-	grid_get(g, 23, 49)->is_solid = true;
-	grid_get(g, 24, 49)->is_solid = true;
+	for (size_t i = 0; i < N_ROCKS; ++i) {
+		size_t x = grid_rand(g) % g->width,
+		       y = grid_rand(g) % g->height;
+		grid_set_solid(g, x, y, 3, 3, true);
+	}
 	for (size_t i = 0; i < N_ANIMALS; ) {
 		struct tile *t =
 			grid_get_unck(g, rand() % g->width, rand() % g->height);

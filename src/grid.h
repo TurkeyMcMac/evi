@@ -70,6 +70,16 @@ bool grid_next_mutant(struct grid *self);
 
 void grid_update(struct grid *self);
 
+void grid_set_solid_unck(struct grid *self,
+	size_t x, size_t y,
+	size_t width, size_t height,
+	bool is_solid);
+
+void grid_set_solid(struct grid *self,
+	size_t x, size_t y,
+	size_t width, size_t height,
+	bool is_solid);
+
 int grid_write(struct grid *g, FILE *dest, const char **err);
 
 struct grid *grid_read(FILE *src, const char **err);
